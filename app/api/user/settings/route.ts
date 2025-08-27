@@ -15,8 +15,14 @@ function simpleDecrypt(encryptedText: string): string {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
+    console.log('GET /api/user/settings - 세션 상태:', { 
+      hasSession: !!session, 
+      hasAccessToken: !!session?.accessToken,
+      sessionError: session?.error 
+    })
     
     if (!session?.accessToken) {
+      console.error('GET /api/user/settings - AccessToken 없음')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -53,12 +59,22 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
+    console.log('POST /api/user/settings - 세션 상태:', { 
+      hasSession: !!session, 
+      hasAccessToken: !!session?.accessToken,
+      sessionError: session?.error 
+    })
     
     if (!session?.accessToken) {
+      console.error('POST /api/user/settings - AccessToken 없음')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { geminiApiKey } = await request.json()
+    console.log('POST /api/user/settings - API 키 수신됨:', { 
+      hasApiKey: !!geminiApiKey,
+      keyPrefix: geminiApiKey?.substring(0, 10) + '...' 
+    })
     
     if (!geminiApiKey || !geminiApiKey.startsWith('AIzaSy')) {
       return NextResponse.json({ error: 'Invalid API key format' }, { status: 400 })
