@@ -8,6 +8,13 @@ export class GoogleSheetsClient {
 
   // 스프레드시트에 데이터 입력
   async writeToSheet(spreadsheetId: string, range: string, values: any[][]) {
+    console.log('Google Sheets writeToSheet 시도:', { 
+      spreadsheetId, 
+      range, 
+      valuesCount: values.length,
+      hasAccessToken: !!this.accessToken 
+    })
+    
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`,
       {
@@ -20,8 +27,16 @@ export class GoogleSheetsClient {
       }
     )
 
+    console.log('Google Sheets writeToSheet 응답:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    })
+
     if (!response.ok) {
-      throw new Error(`Failed to write to sheet: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('Google Sheets writeToSheet 오류 상세:', errorText)
+      throw new Error(`Failed to write to sheet: ${response.statusText} - ${errorText}`)
     }
 
     return response.json()
@@ -95,13 +110,22 @@ export class GoogleSheetsClient {
 
   // 학생 데이터 초기화 (기본 구조 생성)
   async initializeStudentData(spreadsheetId: string) {
+    console.log('Google Sheets 초기화 시작:', { spreadsheetId })
+    
     const headers = [
       '학생명', '학급', '설문날짜', 
       '자기인식', '자기관리', '사회인식', '관계기술', '의사결정',
       '위기수준', '특이사항', '상담필요'
     ]
+    console.log('헤더 데이터 준비 완료:', headers)
 
-    await this.writeToSheet(spreadsheetId, 'A1:K1', [headers])
+    try {
+      await this.writeToSheet(spreadsheetId, 'A1:K1', [headers])
+      console.log('Google Sheets 헤더 작성 성공')
+    } catch (error) {
+      console.error('Google Sheets 헤더 작성 실패:', error)
+      throw new Error(`스프레드시트 초기화 실패: ${error.message}`)
+    }
     
     return { success: true, headers }
   }
