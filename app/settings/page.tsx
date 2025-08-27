@@ -115,14 +115,21 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">설정</h1>
-              <p className="text-gray-600 mt-2">AI 설문 생성을 위한 API 설정</p>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">M</span>
+                </div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
+                  MIRA Settings
+                </h1>
+              </div>
+              <p className="text-gray-600 mt-2">🔮 MIRA의 AI 마음 이해 기능을 활성화하기 위해 Gemini API 키를 설정하세요</p>
             </div>
             <div className="flex items-center gap-4">
               <AuthButton />

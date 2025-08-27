@@ -93,11 +93,16 @@ export function SurveyGenerator({ onSurveyGenerated }: SurveyGeneratorProps) {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          🧠 AI SEL 설문 생성기
+        <CardTitle className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-xs font-bold">M</span>
+          </div>
+          <span className="bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
+            MIRA 설문 생성기
+          </span>
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Gemini AI가 학생 맞춤형 사회정서학습 설문을 자동 생성합니다
+          💖 내면과 감정을 반영하는 맞춤형 SEL 설문을 AI가 생성해드립니다
         </p>
       </CardHeader>
       
@@ -108,7 +113,7 @@ export function SurveyGenerator({ onSurveyGenerated }: SurveyGeneratorProps) {
             대상 학년 *
           </label>
           <select 
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             value={config.targetGrade}
             onChange={(e) => setConfig(prev => ({ ...prev, targetGrade: e.target.value }))}
           >
@@ -126,7 +131,7 @@ export function SurveyGenerator({ onSurveyGenerated }: SurveyGeneratorProps) {
           </label>
           <input
             type="text"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             placeholder="개별 학생 설문시 입력"
             value={config.studentName}
             onChange={(e) => setConfig(prev => ({ ...prev, studentName: e.target.value }))}

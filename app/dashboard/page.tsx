@@ -93,14 +93,21 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">상담 대시보드</h1>
-              <p className="text-gray-600 mt-2">학생들의 SEL 현황을 한눈에 확인하세요</p>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">M</span>
+                </div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
+                  MIRA Dashboard
+                </h1>
+              </div>
+              <p className="text-gray-600 mt-2">학생들의 내면과 감정을 반영한 SEL 현황을 한눈에 확인하세요</p>
             </div>
             <div className="flex items-center gap-4">
               <Button 
@@ -112,9 +119,10 @@ export default function Dashboard() {
               <AuthButton />
               <Button 
                 size="lg"
+                variant="mira"
                 onClick={() => window.location.href = '/surveys'}
               >
-                새 설문 생성
+                💖 SEL 설문 생성
               </Button>
             </div>
           </div>
@@ -123,25 +131,25 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{totalStudents}</div>
+                <div className="text-2xl font-bold text-teal-600">{totalStudents}</div>
                 <p className="text-sm text-gray-600">전체 학생</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{recentSurveys}</div>
+                <div className="text-2xl font-bold text-purple-600">{recentSurveys}</div>
                 <p className="text-sm text-gray-600">최근 설문</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-600">{warningStudents}</div>
+                <div className="text-2xl font-bold text-amber-600">{warningStudents}</div>
                 <p className="text-sm text-gray-600">주의 학생</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">{criticalStudents}</div>
+                <div className="text-2xl font-bold text-rose-600">{criticalStudents}</div>
                 <p className="text-sm text-gray-600">위험 학생</p>
               </CardContent>
             </Card>
@@ -197,10 +205,10 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
-                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                      📊
+                    <div className="w-16 h-16 bg-gradient-to-br from-teal-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      🪞
                     </div>
-                    <p>학생을 선택하면<br />상세 분석을 확인할 수 있습니다</p>
+                    <p>학생을 선택하면<br />내면과 감정 분석을 확인할 수 있습니다</p>
                   </div>
                 )}
               </CardContent>
@@ -221,20 +229,20 @@ export default function Dashboard() {
                   className="h-16 flex flex-col gap-1"
                   onClick={() => window.location.href = '/surveys'}
                 >
-                  <span className="text-lg">🤖</span>
-                  <span className="text-sm">AI 설문 생성</span>
+                  <span className="text-lg">💖</span>
+                  <span className="text-sm">SEL 설문</span>
                 </Button>
                 <Button variant="outline" className="h-16 flex flex-col gap-1">
-                  <span className="text-lg">📊</span>
-                  <span className="text-sm">통계 보기</span>
+                  <span className="text-lg">🪞</span>
+                  <span className="text-sm">감정 분석</span>
                 </Button>
                 <Button variant="outline" className="h-16 flex flex-col gap-1">
-                  <span className="text-lg">📄</span>
-                  <span className="text-sm">보고서 관리</span>
+                  <span className="text-lg">📈</span>
+                  <span className="text-sm">SEL 보고서</span>
                 </Button>
                 <Button variant="outline" className="h-16 flex flex-col gap-1">
-                  <span className="text-lg">💾</span>
-                  <span className="text-sm">Google Drive</span>
+                  <span className="text-lg">🔗</span>
+                  <span className="text-sm">Google 연동</span>
                 </Button>
               </div>
             </CardContent>

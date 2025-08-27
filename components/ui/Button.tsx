@@ -7,12 +7,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800",
-        destructive: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800",
-        outline: "border border-gray-300 bg-white hover:bg-gray-50 text-gray-700",
-        secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
-        ghost: "hover:bg-gray-100 hover:text-gray-900",
-        link: "text-blue-600 underline-offset-4 hover:underline",
+        default: "bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 active:from-teal-700 active:to-teal-800 shadow-lg",
+        destructive: "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-lg",
+        outline: "border-2 border-teal-300 bg-white hover:bg-teal-50 text-teal-700 hover:border-teal-400",
+        secondary: "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 hover:from-purple-200 hover:to-pink-200",
+        ghost: "hover:bg-teal-50 hover:text-teal-800",
+        link: "text-teal-600 underline-offset-4 hover:underline hover:text-teal-700",
+        mira: "bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500 text-white hover:from-teal-600 hover:via-purple-600 hover:to-pink-600 shadow-xl transform transition-all duration-200 hover:scale-105",
       },
       size: {
         default: "h-10 px-4 py-2",

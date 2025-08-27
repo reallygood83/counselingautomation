@@ -13,6 +13,9 @@ interface SurveyConfig {
   difficultyLevel: 'basic' | 'standard' | 'advanced'
 }
 
+// 기본 모델: 환경변수로 오버라이드 가능
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+
 export class GeminiClient {
   private apiKey: string
 
@@ -39,7 +42,9 @@ export class GeminiClient {
     
     try {
       console.log('Gemini API 호출 시작...')
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.apiKey}`, {
+      const model = DEFAULT_GEMINI_MODEL
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +72,15 @@ export class GeminiClient {
           statusText: response.statusText,
           errorBody: errorText
         })
-        throw new Error(`Gemini API 오류: ${response.status} ${response.statusText} - ${errorText}`)
+        // 모델/키 오류에 대해 사용자 친화적인 로그 남기고 기본 문항으로 폴백
+        if (response.status === 404 && errorText.includes('model')) {
+          console.warn(`Gemini 모델(${model})을 찾을 수 없습니다. 기본 문항으로 폴백합니다.`)
+        } else if (response.status === 401 || response.status === 403) {
+          console.warn('Gemini API 키가 유효하지 않거나 권한이 없습니다. 기본 문항으로 폴백합니다.')
+        } else {
+          console.warn(`Gemini API 오류(${response.status} ${response.statusText}). 기본 문항으로 폴백합니다.`)
+        }
+        return this.getDefaultQuestions()
       }
 
       const data = await response.json()
@@ -98,7 +111,9 @@ export class GeminiClient {
         stack: err.stack,
         name: err.name
       })
-      throw err
+      // API 오류 등 모든 예외 상황에서 기본 문항으로 폴백
+      console.warn('Gemini 호출 실패로 기본 문항을 반환합니다.')
+      return this.getDefaultQuestions()
     }
   }
 
@@ -122,7 +137,9 @@ export class GeminiClient {
     const analysisPrompt = this.buildAnalysisPrompt(scores, responses, questions)
     
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.apiKey}`, {
+      const model = DEFAULT_GEMINI_MODEL
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
