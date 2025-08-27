@@ -44,12 +44,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating Google Form with title:', survey.title)
     console.log('Survey questions count:', survey.questions?.length)
+    console.log('Survey includeStudentFields:', survey.includeStudentFields)
+    console.log('Survey classNames:', survey.classNames)
     
-    // Google Forms 생성
+    // Google Forms 생성 - 학생 식별 필드 옵션 포함
     const formsUrl = await formsClient.createForm({
       title: survey.title,
       description: survey.description || `MIRA SEL 설문 - ${survey.targetGrade} 대상`,
-      questions: survey.questions
+      questions: survey.questions,
+      includeStudentFields: survey.includeStudentFields !== false, // 기본값 true
+      classNames: survey.classNames || []
     })
 
     console.log('Google Form created successfully:', formsUrl)

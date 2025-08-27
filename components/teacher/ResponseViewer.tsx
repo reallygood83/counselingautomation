@@ -100,6 +100,36 @@ export function ResponseViewer({ formId, formTitle }: ResponseViewerProps) {
     }
   }
 
+  // 자동 수집 + SEL 분석
+  const autoCollectAndAnalyze = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      // surveyId를 formId로 가정하고 자동 수집 API 호출
+      const response = await fetch(`/api/surveys/${formId}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || '자동 수집 및 분석 실패')
+      }
+
+      alert(`🎉 자동 처리 완료!\n\n📊 수집: ${data.stats.savedResponses}개\n🧠 분석: ${data.stats.analyzedResponses}개\n❌ 매칭실패: ${data.stats.unmatchedResponses}개`)
+      
+      // 응답 데이터 새로고침
+      await loadResponses()
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '자동 처리 중 오류 발생')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -119,13 +149,22 @@ export function ResponseViewer({ formId, formTitle }: ResponseViewerProps) {
             {loading ? '로딩 중...' : '📥 응답 불러오기'}
           </Button>
           {responses.length > 0 && (
-            <Button
-              onClick={saveResponses}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              💾 Firebase 저장
-            </Button>
+            <>
+              <Button
+                onClick={saveResponses}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                💾 Firebase 저장
+              </Button>
+              <Button
+                onClick={autoCollectAndAnalyze}
+                disabled={loading}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                🤖 자동 수집+분석
+              </Button>
+            </>
           )}
         </div>
       </div>

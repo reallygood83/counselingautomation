@@ -100,10 +100,13 @@ export class GoogleFormsClient {
       const studentFieldRequests = []
       
       if (formData.includeStudentFields) {
-        console.log('Step 3a: Adding student identification fields')
+        console.log('Step 3a: Adding student identification fields', {
+          includeStudentFields: formData.includeStudentFields,
+          classNamesProvided: formData.classNames?.length || 0
+        })
         
         // 학생명 필드
-        studentFieldRequests.push({
+        const studentNameField = {
           createItem: {
             item: {
               title: '학생명',
@@ -119,11 +122,14 @@ export class GoogleFormsClient {
             },
             location: { index: 0 }
           }
-        })
+        }
+        studentFieldRequests.push(studentNameField)
+        console.log('Added student name field:', JSON.stringify(studentNameField, null, 2))
 
         // 학급 선택 필드 (학급 목록이 제공된 경우 드롭다운, 아니면 텍스트)
+        let classField
         if (formData.classNames && formData.classNames.length > 0) {
-          studentFieldRequests.push({
+          classField = {
             createItem: {
               item: {
                 title: '학급',
@@ -140,9 +146,10 @@ export class GoogleFormsClient {
               },
               location: { index: 1 }
             }
-          })
+          }
+          console.log('Added class dropdown field with options:', formData.classNames)
         } else {
-          studentFieldRequests.push({
+          classField = {
             createItem: {
               item: {
                 title: '학급',
@@ -158,11 +165,13 @@ export class GoogleFormsClient {
               },
               location: { index: 1 }
             }
-          })
+          }
+          console.log('Added class text field (no options provided)')
         }
+        studentFieldRequests.push(classField)
 
         // 학번 필드
-        studentFieldRequests.push({
+        const studentNumberField = {
           createItem: {
             item: {
               title: '학번 (번호)',
@@ -178,20 +187,44 @@ export class GoogleFormsClient {
             },
             location: { index: 2 }
           }
-        })
+        }
+        studentFieldRequests.push(studentNumberField)
+        console.log('Added student number field:', JSON.stringify(studentNumberField, null, 2))
 
         questionStartIndex = 3 // 학생 필드 다음부터 설문 질문 시작
       }
 
       // 학생 필드 먼저 추가
       if (studentFieldRequests.length > 0) {
-        await forms.forms.batchUpdate({
+        console.log('Step 3b: Executing batchUpdate for student fields', {
+          requestsCount: studentFieldRequests.length,
           formId: formId,
-          requestBody: {
-            requests: studentFieldRequests
-          }
+          requests: JSON.stringify(studentFieldRequests, null, 2)
         })
-        console.log('Student identification fields added successfully')
+        
+        try {
+          const batchUpdateResult = await forms.forms.batchUpdate({
+            formId: formId,
+            requestBody: {
+              requests: studentFieldRequests
+            }
+          })
+          
+          console.log('Student fields batchUpdate result:', {
+            status: 'success',
+            resultData: batchUpdateResult.data,
+            formId: formId
+          })
+          
+        } catch (batchError) {
+          console.error('Student fields batchUpdate failed:', {
+            error: batchError,
+            message: batchError instanceof Error ? batchError.message : 'Unknown error',
+            formId: formId,
+            requests: studentFieldRequests
+          })
+          throw new Error(`학생 식별 필드 추가 실패: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`)
+        }
       }
 
       // 4. 설문 질문 추가
@@ -294,20 +327,48 @@ export class GoogleFormsClient {
 
       // 배치 업데이트로 모든 질문 추가
       if (requests.length > 0) {
-        console.log('Adding', requests.length, 'questions to form')
-        await forms.forms.batchUpdate({
-          formId: formId,
-          requestBody: {
-            requests: requests
-          }
+        console.log('Step 5: Adding survey questions to form', {
+          questionsCount: requests.length,
+          questionStartIndex: questionStartIndex
         })
+        
+        try {
+          const questionsResult = await forms.forms.batchUpdate({
+            formId: formId,
+            requestBody: {
+              requests: requests
+            }
+          })
+          
+          console.log('Survey questions added successfully:', {
+            questionsCount: requests.length,
+            resultData: questionsResult.data
+          })
+          
+        } catch (questionsError) {
+          console.error('Survey questions batchUpdate failed:', {
+            error: questionsError,
+            message: questionsError instanceof Error ? questionsError.message : 'Unknown error',
+            formId: formId,
+            questionsCount: requests.length
+          })
+          throw new Error(`설문 질문 추가 실패: ${questionsError instanceof Error ? questionsError.message : 'Unknown error'}`)
+        }
       }
 
-      // 4. 폼 URL 생성 및 반환
-      const formUrl = `https://docs.google.com/forms/d/${formId}/edit`
-      console.log('Form created successfully:', formUrl)
+      // 5. 폼 URL 생성 및 반환
+      const editUrl = `https://docs.google.com/forms/d/${formId}/edit`
+      const responseUrl = `https://docs.google.com/forms/d/${formId}/viewform`
+      
+      console.log('Form created successfully:', {
+        formId: formId,
+        editUrl: editUrl,
+        responseUrl: responseUrl,
+        includeStudentFields: formData.includeStudentFields,
+        studentFieldsAdded: studentFieldRequests.length > 0 ? 3 : 0
+      })
 
-      return formUrl
+      return editUrl
 
     } catch (error) {
       console.error('Google Forms creation error:', error)
