@@ -22,12 +22,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { targetGrade, studentName, focusAreas, difficultyLevel = 'standard' } = body
+    const { 
+      targetGrade, 
+      studentName, 
+      focusAreas, 
+      difficultyLevel = 'standard',
+      includeStudentFields = true, // 학생 식별 필드 포함 여부
+      classNames = [] // 학급 목록
+    } = body
     console.log('POST /api/surveys/generate - 요청 데이터:', {
       targetGrade, 
       studentName, 
       focusAreas, 
-      difficultyLevel
+      difficultyLevel,
+      includeStudentFields,
+      classNames
     })
 
     if (!targetGrade) {
@@ -74,6 +83,8 @@ export async function POST(request: NextRequest) {
           focusAreas,
           difficultyLevel,
           questions,
+          includeStudentFields,
+          classNames,
           createdAt: new Date().toISOString(),
           status: 'draft'
         }

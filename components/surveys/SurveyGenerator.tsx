@@ -9,6 +9,8 @@ interface SurveyConfig {
   studentName?: string
   focusAreas?: string[]
   difficultyLevel: 'basic' | 'standard' | 'advanced'
+  includeStudentFields?: boolean
+  classNames?: string[]
 }
 
 interface SurveyGeneratorProps {
@@ -20,7 +22,9 @@ export function SurveyGenerator({ onSurveyGenerated }: SurveyGeneratorProps) {
     targetGrade: '',
     studentName: '',
     focusAreas: [],
-    difficultyLevel: 'standard'
+    difficultyLevel: 'standard',
+    includeStudentFields: true,
+    classNames: []
   })
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -223,6 +227,48 @@ export function SurveyGenerator({ onSurveyGenerated }: SurveyGeneratorProps) {
                 <span className="text-xs text-gray-500">{level.desc}</span>
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* 학생 필드 옵션 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            학생 식별 설정
+          </label>
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                checked={config.includeStudentFields}
+                onChange={(e) => setConfig(prev => ({ ...prev, includeStudentFields: e.target.checked }))}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <div>
+                <span className="text-sm font-medium">학생 식별 필드 자동 추가</span>
+                <p className="text-xs text-gray-500">Forms에 학생명, 학급, 번호 입력 필드가 자동으로 추가됩니다</p>
+              </div>
+            </label>
+            
+            {config.includeStudentFields && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">
+                  학급 목록 (선택사항)
+                </label>
+                <textarea
+                  className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  placeholder="3-1, 3-2, 4-1, 4-2 (쉼표로 구분)"
+                  value={config.classNames?.join(', ') || ''}
+                  onChange={(e) => {
+                    const classes = e.target.value.split(',').map(c => c.trim()).filter(c => c.length > 0)
+                    setConfig(prev => ({ ...prev, classNames: classes }))
+                  }}
+                  rows={2}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  입력하면 학급 선택 드롭다운으로 표시됩니다. 비워두면 텍스트 입력으로 표시됩니다.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

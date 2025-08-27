@@ -12,6 +12,8 @@ export interface CreateFormRequest {
   title: string
   description: string
   questions: FormQuestion[]
+  includeStudentFields?: boolean // 학생 식별 필드 포함 여부
+  classNames?: string[] // 학급 목록 (드롭다운용)
 }
 
 export class GoogleFormsClient {
@@ -93,8 +95,107 @@ export class GoogleFormsClient {
         console.log('Description added successfully')
       }
 
-      // 3. 질문 추가
-      console.log('Step 3: Adding questions to form')
+      // 3. 학생 식별 필드 추가 (옵션)
+      let questionStartIndex = 0
+      const studentFieldRequests = []
+      
+      if (formData.includeStudentFields) {
+        console.log('Step 3a: Adding student identification fields')
+        
+        // 학생명 필드
+        studentFieldRequests.push({
+          createItem: {
+            item: {
+              title: '학생명',
+              description: '본인의 이름을 정확히 입력해주세요.',
+              questionItem: {
+                question: {
+                  required: true,
+                  textQuestion: {
+                    paragraph: false
+                  }
+                }
+              }
+            },
+            location: { index: 0 }
+          }
+        })
+
+        // 학급 선택 필드 (학급 목록이 제공된 경우 드롭다운, 아니면 텍스트)
+        if (formData.classNames && formData.classNames.length > 0) {
+          studentFieldRequests.push({
+            createItem: {
+              item: {
+                title: '학급',
+                description: '본인이 속한 학급을 선택해주세요.',
+                questionItem: {
+                  question: {
+                    required: true,
+                    choiceQuestion: {
+                      type: 'DROPDOWN',
+                      options: formData.classNames.map(className => ({ value: className }))
+                    }
+                  }
+                }
+              },
+              location: { index: 1 }
+            }
+          })
+        } else {
+          studentFieldRequests.push({
+            createItem: {
+              item: {
+                title: '학급',
+                description: '본인이 속한 학급을 입력해주세요 (예: 3-1, 4-2).',
+                questionItem: {
+                  question: {
+                    required: true,
+                    textQuestion: {
+                      paragraph: false
+                    }
+                  }
+                }
+              },
+              location: { index: 1 }
+            }
+          })
+        }
+
+        // 학번 필드
+        studentFieldRequests.push({
+          createItem: {
+            item: {
+              title: '학번 (번호)',
+              description: '본인의 번호를 입력해주세요 (예: 15)',
+              questionItem: {
+                question: {
+                  required: true,
+                  textQuestion: {
+                    paragraph: false
+                  }
+                }
+              }
+            },
+            location: { index: 2 }
+          }
+        })
+
+        questionStartIndex = 3 // 학생 필드 다음부터 설문 질문 시작
+      }
+
+      // 학생 필드 먼저 추가
+      if (studentFieldRequests.length > 0) {
+        await forms.forms.batchUpdate({
+          formId: formId,
+          requestBody: {
+            requests: studentFieldRequests
+          }
+        })
+        console.log('Student identification fields added successfully')
+      }
+
+      // 4. 설문 질문 추가
+      console.log('Step 4: Adding survey questions to form')
       const requests = formData.questions.map((q, index) => {
         let questionItem: any = {
           createItem: {
@@ -103,7 +204,7 @@ export class GoogleFormsClient {
               questionItem: {}
             },
             location: {
-              index: index
+              index: index + questionStartIndex
             }
           }
         }
