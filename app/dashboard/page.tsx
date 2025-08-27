@@ -7,6 +7,7 @@ import { StudentCard, type StudentData } from '@/components/ui/StudentCard'
 import { SELChart } from '@/components/charts/SELChart'
 import { AuthButton } from '@/components/auth/AuthButton'
 import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 
 // Mock data for demonstration
 const mockStudents: StudentData[] = [
@@ -99,7 +100,7 @@ export default function Dashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-2 cursor-pointer hover:opacity-80 transition-opacity">
                 <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">M</span>
                 </div>
@@ -110,20 +111,17 @@ export default function Dashboard() {
               <p className="text-gray-600 mt-2">학생들의 내면과 감정을 반영한 SEL 현황을 한눈에 확인하세요</p>
             </div>
             <div className="flex items-center gap-4">
-              <Button 
-                variant="outline"
-                onClick={() => window.location.href = '/settings'}
-              >
-                설정
-              </Button>
+              <Link href="/settings">
+                <Button variant="outline">
+                  ⚙️ 설정
+                </Button>
+              </Link>
               <AuthButton />
-              <Button 
-                size="lg"
-                variant="mira"
-                onClick={() => window.location.href = '/surveys'}
-              >
-                💖 SEL 설문 생성
-              </Button>
+              <Link href="/surveys">
+                <Button size="lg" variant="mira">
+                  💖 SEL 설문 생성
+                </Button>
+              </Link>
             </div>
           </div>
 

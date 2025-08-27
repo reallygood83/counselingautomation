@@ -72,19 +72,24 @@ export function SurveyGenerator({ onSurveyGenerated }: SurveyGeneratorProps) {
         body: JSON.stringify(config)
       })
 
+      const data = await response.json().catch(() => null)
+
       if (!response.ok) {
-        throw new Error('설문 생성에 실패했습니다.')
+        const serverMsg = (data && (data.error || data.details)) ? `${data.error}${data.details ? `\n세부: ${data.details}` : ''}` : `설문 생성에 실패했습니다. (status: ${response.status})`
+        throw new Error(serverMsg)
       }
 
-      const data = await response.json()
-      
+      if (!data) {
+        throw new Error('서버 응답을 파싱할 수 없습니다.')
+      }
+
       if (onSurveyGenerated) {
         onSurveyGenerated(data.survey)
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('설문 생성 오류:', error)
-      setError('설문 생성 중 오류가 발생했습니다.')
+      setError(typeof error?.message === 'string' ? error.message : '설문 생성 중 오류가 발생했습니다.')
     } finally {
       setIsGenerating(false)
     }

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { AuthButton } from '@/components/auth/AuthButton'
 import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 
 export default function Settings() {
   const { data: session, status } = useSession()
@@ -121,24 +122,23 @@ export default function Settings() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <Link href="/dashboard" className="flex items-center gap-3 mb-2 hover:opacity-80 transition-opacity cursor-pointer">
                 <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">M</span>
                 </div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
                   MIRA Settings
                 </h1>
-              </div>
+              </Link>
               <p className="text-gray-600 mt-2">🔮 MIRA의 AI 마음 이해 기능을 활성화하기 위해 Gemini API 키를 설정하세요</p>
             </div>
             <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  🏠 홈
+                </Button>
+              </Link>
               <AuthButton />
-              <Button 
-                variant="outline"
-                onClick={() => window.location.href = '/dashboard'}
-              >
-                대시보드로 돌아가기
-              </Button>
             </div>
           </div>
         </div>

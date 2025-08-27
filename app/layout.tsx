@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/components/providers/AuthProvider'
+import { Footer } from '@/components/ui/Footer'
 
 export const metadata: Metadata = {
   title: 'MIRA - Mirroring Inner Reality and Affect',
@@ -25,9 +26,12 @@ export default function RootLayout({
         <meta property="og:url" content="https://counselingautomation.vercel.app" />
         <meta name="twitter:card" content="summary_large_image" />
       </head>
-      <body className="min-h-screen bg-gradient-to-br from-teal-50 via-purple-50 to-pink-50 font-pretendard">
+      <body className="min-h-screen bg-gradient-to-br from-teal-50 via-purple-50 to-pink-50 font-pretendard flex flex-col">
         <AuthProvider>
-          {children}
+          <div className="flex-1">
+            {children}
+          </div>
+          <Footer />
         </AuthProvider>
       </body>
     </html>

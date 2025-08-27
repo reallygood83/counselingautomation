@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { AuthGuard } from '@/components/auth/AuthButton'
 import { SurveyGenerator } from '@/components/surveys/SurveyGenerator'
 import { SurveyPreviewModal } from '@/components/surveys/SurveyPreviewModal'
+import Link from 'next/link'
 
 export default function SurveysPage() {
   const [currentView, setCurrentView] = useState<'list' | 'generate'>('list')
@@ -139,18 +140,23 @@ export default function SurveysPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <div className="flex items-center gap-3 mb-2">
+                <Link href="/dashboard" className="flex items-center gap-3 mb-2 hover:opacity-80 transition-opacity cursor-pointer">
                   <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs font-bold">M</span>
                   </div>
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
                     MIRA SEL Manager
                   </h1>
-                </div>
+                </Link>
                 <p className="text-gray-600 mt-2">학생의 내면과 감정을 반영하는 사회정서학습 설문을 생성하고 관리하세요</p>
               </div>
               
               <div className="flex items-center gap-4">
+                <Link href="/dashboard">
+                  <Button variant="outline" size="sm">
+                    🏠 홈
+                  </Button>
+                </Link>
                 <Button
                   variant={currentView === 'list' ? 'default' : 'outline'}
                   onClick={() => setCurrentView('list')}
