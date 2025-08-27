@@ -123,8 +123,9 @@ export class GoogleSheetsClient {
       await this.writeToSheet(spreadsheetId, 'A1:K1', [headers])
       console.log('Google Sheets 헤더 작성 성공')
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error))
       console.error('Google Sheets 헤더 작성 실패:', error)
-      throw new Error(`스프레드시트 초기화 실패: ${error.message}`)
+      throw new Error(`스프레드시트 초기화 실패: ${err.message}`)
     }
     
     return { success: true, headers }
