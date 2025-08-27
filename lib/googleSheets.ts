@@ -110,21 +110,33 @@ export class GoogleSheetsClient {
 
   // 학생 데이터 초기화 (기본 구조 생성)
   async initializeStudentData(spreadsheetId: string) {
-    console.log('Google Sheets 초기화 시작:', { spreadsheetId })
+    console.log('Google Sheets initializeStudentData 시작:', { 
+      spreadsheetId, 
+      hasAccessToken: !!this.accessToken 
+    })
     
     const headers = [
       '학생명', '학급', '설문날짜', 
       '자기인식', '자기관리', '사회인식', '관계기술', '의사결정',
       '위기수준', '특이사항', '상담필요'
     ]
-    console.log('헤더 데이터 준비 완료:', headers)
+    console.log('Google Sheets 헤더 데이터 준비 완료:', { 
+      headers, 
+      headersCount: headers.length 
+    })
 
     try {
+      console.log('Google Sheets writeToSheet 호출 시도 중...')
       await this.writeToSheet(spreadsheetId, 'A1:K1', [headers])
-      console.log('Google Sheets 헤더 작성 성공')
+      console.log('Google Sheets initializeStudentData 성공')
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
-      console.error('Google Sheets 헤더 작성 실패:', error)
+      console.error('Google Sheets initializeStudentData 실패 상세:', {
+        error: err.message,
+        stack: err.stack,
+        name: err.name,
+        spreadsheetId
+      })
       throw new Error(`스프레드시트 초기화 실패: ${err.message}`)
     }
     

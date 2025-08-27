@@ -132,14 +132,27 @@ export class GoogleDriveClient {
 
   // 상담자동화 루트 폴더 찾기 또는 생성
   async ensureCounselingFolder() {
+    console.log('Google Drive ensureCounselingFolder 시작')
+    
     // 기존 폴더 찾기
+    console.log('1단계: 기존 상담자동화 폴더 검색 중...')
     const existingFolder = await this.findFolder('상담자동화')
     if (existingFolder) {
+      console.log('기존 상담자동화 폴더 발견:', {
+        id: existingFolder.id,
+        name: existingFolder.name
+      })
       return existingFolder
     }
 
     // 없으면 새로 생성
-    return await this.createFolder('상담자동화')
+    console.log('2단계: 상담자동화 폴더가 없어서 새로 생성 중...')
+    const newFolder = await this.createFolder('상담자동화')
+    console.log('새 상담자동화 폴더 생성 완료:', {
+      id: newFolder.id,
+      name: newFolder.name
+    })
+    return newFolder
   }
 
   // 폴더 찾기

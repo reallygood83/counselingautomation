@@ -22,10 +22,12 @@ export const authOptions: NextAuthOptions = {
         token.accessTokenExpires = account.expires_at
       }
       
-      // 토큰 만료 시 갱신
+      // 토큰이 아직 유효한 경우 그대로 반환
       if (token.accessTokenExpires && Date.now() < token.accessTokenExpires * 1000) {
         return token
       }
+      
+      // 토큰이 만료되었거나 만료 시간이 없는 경우 갱신 필요
       
       // 토큰 갱신 시도
       if (token.refreshToken) {
