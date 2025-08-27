@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { StudentCard, type StudentData } from '@/components/ui/StudentCard'
 import { SELChart } from '@/components/charts/SELChart'
 import { AuthButton } from '@/components/auth/AuthButton'
+import { TeacherNavigation } from '@/components/teacher/TeacherNavigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 
@@ -94,36 +95,30 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2 cursor-pointer hover:opacity-80 transition-opacity">
-                <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">M</span>
-                </div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
-                  MIRA Dashboard
-                </h1>
+    <div className="min-h-screen">
+      {/* Navigation */}
+      <TeacherNavigation currentSection="dashboard" />
+      
+      <div className="p-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  대시보드 개요
+                </h2>
+                <p className="text-gray-600">학생들의 내면과 감정을 반영한 SEL 현황을 한눈에 확인하세요</p>
               </div>
-              <p className="text-gray-600 mt-2">학생들의 내면과 감정을 반영한 SEL 현황을 한눈에 확인하세요</p>
+              <div className="flex items-center gap-4">
+                <AuthButton />
+                <Link href="/surveys">
+                  <Button size="lg" variant="mira">
+                    💖 SEL 설문 생성
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Link href="/settings">
-                <Button variant="outline">
-                  ⚙️ 설정
-                </Button>
-              </Link>
-              <AuthButton />
-              <Link href="/surveys">
-                <Button size="lg" variant="mira">
-                  💖 SEL 설문 생성
-                </Button>
-              </Link>
-            </div>
-          </div>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -214,49 +209,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>빠른 작업</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-16 flex flex-col gap-1"
-                  onClick={() => window.location.href = '/surveys'}
-                >
-                  <span className="text-lg">💖</span>
-                  <span className="text-sm">SEL 설문</span>
-                </Button>
-                <Link href="/teacher/students" className="block">
-                  <Button variant="outline" className="h-16 flex flex-col gap-1 w-full">
-                    <span className="text-lg">👥</span>
-                    <span className="text-sm">학생 관리</span>
-                  </Button>
-                </Link>
-                <Link href="/teacher/responses" className="block">
-                  <Button variant="outline" className="h-16 flex flex-col gap-1 w-full">
-                    <span className="text-lg">📋</span>
-                    <span className="text-sm">응답 확인</span>
-                  </Button>
-                </Link>
-                <Button variant="outline" className="h-16 flex flex-col gap-1">
-                  <span className="text-lg">🪞</span>
-                  <span className="text-sm">감정 분석</span>
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col gap-1">
-                  <span className="text-lg">📈</span>
-                  <span className="text-sm">SEL 보고서</span>
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col gap-1">
-                  <span className="text-lg">🔗</span>
-                  <span className="text-sm">Google 연동</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

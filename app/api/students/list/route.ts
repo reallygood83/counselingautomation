@@ -6,9 +6,16 @@ import { collection, query, where, getDocs, orderBy, Timestamp, serverTimestamp 
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('학생 목록 조회 API 호출 시작')
     const session = await getServerSession(authOptions)
+    console.log('세션 정보:', { 
+      hasSession: !!session, 
+      hasUser: !!session?.user, 
+      email: session?.user?.email 
+    })
     
     if (!session?.user?.email) {
+      console.log('인증 실패: 세션 없음')
       return NextResponse.json(
         { error: '인증이 필요합니다.' },
         { status: 401 }
@@ -20,13 +27,11 @@ export async function GET(request: NextRequest) {
     const schoolName = searchParams.get('schoolName')
     const status = searchParams.get('status') || 'active'
 
-    // 쿼리 조건 설정
+    // 쿼리 조건 설정 - 인덱스 없이도 작동하도록 단순화
     let studentQuery = query(
       collection(db, 'students'),
       where('teacherEmail', '==', session.user.email),
-      where('status', '==', status),
-      orderBy('className'),
-      orderBy('studentNumber')
+      where('status', '==', status)
     )
 
     // 학급 필터링 (클라이언트에서 후처리)

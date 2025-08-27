@@ -138,7 +138,7 @@ export class GoogleFormsClient {
                   question: {
                     required: true,
                     choiceQuestion: {
-                      type: 'DROPDOWN',
+                      type: 'DROP_DOWN',
                       options: formData.classNames.map(className => ({ value: className }))
                     }
                   }

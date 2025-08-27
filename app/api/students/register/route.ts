@@ -6,9 +6,16 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'fire
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('학생 등록 API 호출 시작')
     const session = await getServerSession(authOptions)
+    console.log('세션 정보:', { 
+      hasSession: !!session, 
+      hasUser: !!session?.user, 
+      email: session?.user?.email 
+    })
     
     if (!session?.user?.email) {
+      console.log('인증 실패: 세션 없음')
       return NextResponse.json(
         { error: '인증이 필요합니다.' },
         { status: 401 }
@@ -27,15 +34,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 중복 검사 (같은 교사의 같은 학급에서 학번 중복 방지)
+    console.log('중복 검사 시작:', { 
+      teacherEmail: session.user.email, 
+      className, 
+      studentNumber: parseInt(studentNumber) 
+    })
+    
     const duplicateQuery = query(
       collection(db, 'students'),
       where('teacherEmail', '==', session.user.email),
       where('className', '==', className),
-      where('studentNumber', '==', studentNumber)
+      where('studentNumber', '==', parseInt(studentNumber))
     )
+    
+    console.log('중복 검사 쿼리 실행 중...')
     const duplicateDocs = await getDocs(duplicateQuery)
+    console.log('중복 검사 결과:', { isEmpty: duplicateDocs.empty, size: duplicateDocs.size })
     
     if (!duplicateDocs.empty) {
+      console.log('중복 학생 발견, 등록 실패')
       return NextResponse.json(
         { error: `${className}에 이미 ${studentNumber}번 학생이 등록되어 있습니다.` },
         { status: 409 }
@@ -57,8 +74,12 @@ export async function POST(request: NextRequest) {
       notes: '' // 교사 메모
     }
 
+    console.log('학생 데이터 저장 시작:', studentData)
+
     // Firestore에 학생 데이터 저장
+    console.log('Firestore에 학생 데이터 저장 중...')
     const docRef = await addDoc(collection(db, 'students'), studentData)
+    console.log('학생 데이터 저장 완료, docRef.id:', docRef.id)
 
     return NextResponse.json({
       success: true,

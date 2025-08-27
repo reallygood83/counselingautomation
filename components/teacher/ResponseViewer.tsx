@@ -43,10 +43,18 @@ export function ResponseViewer({ formId, formTitle }: ResponseViewerProps) {
   const loadResponses = async () => {
     if (!formId) return
     
+    console.log('ResponseViewer에서 사용할 formId:', formId)
+    
+    if (formId.length < 10) {
+      setError('유효하지 않은 Google Forms ID입니다. ID는 최소 10자 이상이어야 합니다.')
+      return
+    }
+    
     try {
       setLoading(true)
       setError('')
 
+      console.log('Forms API 호출 URL:', `/api/forms/responses?formId=${formId}`)
       const response = await fetch(`/api/forms/responses?formId=${formId}`)
       const data = await response.json()
 

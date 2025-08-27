@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { AuthGuard } from '@/components/auth/AuthButton'
+import { TeacherNavigation } from '@/components/teacher/TeacherNavigation'
 import { SurveyGenerator } from '@/components/surveys/SurveyGenerator'
 import { SurveyPreviewModal } from '@/components/surveys/SurveyPreviewModal'
 import Link from 'next/link'
@@ -177,44 +178,37 @@ export default function SurveysPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen p-4">
-        <div className="max-w-7xl mx-auto">
-          {/* 헤더 */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <Link href="/dashboard" className="flex items-center gap-3 mb-2 hover:opacity-80 transition-opacity cursor-pointer">
-                  <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">M</span>
-                  </div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">
-                    MIRA SEL Manager
-                  </h1>
-                </Link>
-                <p className="text-gray-600 mt-2">학생의 내면과 감정을 반영하는 사회정서학습 설문을 생성하고 관리하세요</p>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <Link href="/dashboard">
-                  <Button variant="outline" size="sm">
-                    🏠 홈
+      <div className="min-h-screen">
+        <TeacherNavigation currentSection="sel-survey" />
+        
+        <div className="p-4">
+          <div className="max-w-7xl mx-auto">
+            {/* 헤더 */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                    MIRA SEL 설문 관리
+                  </h2>
+                  <p className="text-gray-600">학생의 내면과 감정을 반영하는 사회정서학습 설문을 생성하고 관리하세요</p>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant={currentView === 'list' ? 'default' : 'outline'}
+                    onClick={() => setCurrentView('list')}
+                  >
+                    🧠 설문 목록
                   </Button>
-                </Link>
-                <Button
-                  variant={currentView === 'list' ? 'default' : 'outline'}
-                  onClick={() => setCurrentView('list')}
-                >
-                  🧠 설문 목록
-                </Button>
-                <Button
-                  variant={currentView === 'generate' ? 'default' : 'outline'}
-                  onClick={() => setCurrentView('generate')}
-                >
-                  💖 새 설문 생성
-                </Button>
+                  <Button
+                    variant={currentView === 'generate' ? 'default' : 'outline'}
+                    onClick={() => setCurrentView('generate')}
+                  >
+                    💖 새 설문 생성
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* 메인 콘텐츠 */}
           {currentView === 'generate' ? (
@@ -356,18 +350,19 @@ export default function SurveysPage() {
               </Card>
             </div>
           )}
-        </div>
+          </div>
 
-        {/* 설문 미리보기 모달 */}
-        <SurveyPreviewModal
-          survey={selectedSurvey}
-          isOpen={showPreview}
-          onClose={() => {
-            setShowPreview(false)
-            setSelectedSurvey(null)
-          }}
-          onDeploy={handleDeployToForms}
-        />
+          {/* 설문 미리보기 모달 */}
+          <SurveyPreviewModal
+            survey={selectedSurvey}
+            isOpen={showPreview}
+            onClose={() => {
+              setShowPreview(false)
+              setSelectedSurvey(null)
+            }}
+            onDeploy={handleDeployToForms}
+          />
+        </div>
       </div>
     </AuthGuard>
   )

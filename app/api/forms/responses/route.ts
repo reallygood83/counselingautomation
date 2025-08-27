@@ -35,9 +35,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const formId = searchParams.get('formId')
     
-    if (!formId) {
+    console.log('Forms API 호출:', { url: request.url, formId })
+    
+    if (!formId || formId.length < 10) {
+      console.log('유효하지 않은 formId:', formId)
       return NextResponse.json(
-        { error: '폼 ID가 필요합니다.' },
+        { error: '유효한 Google Forms ID가 필요합니다.' },
         { status: 400 }
       )
     }
@@ -71,10 +74,26 @@ export async function GET(request: NextRequest) {
 
     for (const response of responses) {
       try {
+        console.log('📥 원시 Forms 응답 데이터:', {
+          responseId: response.responseId,
+          hasAnswers: !!response.answers,
+          answersKeys: response.answers ? Object.keys(response.answers) : 'no answers',
+          fullResponseStructure: JSON.stringify(response, null, 2),
+          formInfoStructure: formInfo?.items ? `Found ${formInfo.items.length} form items` : 'No form items'
+        })
+        
         const responseData = parseFormsResponse(response, formInfo)
         
         // 학생 정보 추출 (Forms의 첫 3개 질문이 학생 식별 필드라고 가정)
         const studentInfo = extractStudentInfo(responseData)
+        
+        console.log('🔍 Forms 응답 데이터 디버깅:', {
+          responseId: response.responseId,
+          extractedStudentInfo: studentInfo,
+          rawAnswers: responseData.answers,
+          answersCount: Object.keys(responseData.answers).length,
+          formInfo: formInfo ? 'present' : 'missing'
+        })
         
         // 등록된 학생과 매칭
         const matchedStudent = await findMatchingStudent(
@@ -83,6 +102,16 @@ export async function GET(request: NextRequest) {
           studentInfo.className,
           studentInfo.studentNumber
         )
+        
+        console.log('👥 학생 매칭 결과:', {
+          extractedInfo: studentInfo,
+          matchedStudent: matchedStudent ? {
+            id: matchedStudent.id,
+            name: matchedStudent.studentName,
+            class: matchedStudent.className,
+            number: matchedStudent.studentNumber
+          } : null
+        })
 
         if (matchedStudent) {
           processedResponses.push({
@@ -153,6 +182,18 @@ export async function GET(request: NextRequest) {
 
 // Forms 응답을 파싱하여 구조화된 데이터로 변환
 function parseFormsResponse(response: any, formInfo: any) {
+  console.log('🔧 parseFormsResponse 디버깅:', {
+    hasResponseAnswers: !!response.answers,
+    responseAnswersKeys: response.answers ? Object.keys(response.answers) : 'no answers',
+    hasFormInfo: !!formInfo,
+    formInfoItems: formInfo?.items ? formInfo.items.length : 'no items',
+    formItems: formInfo?.items ? formInfo.items.map((item: any) => ({
+      itemId: item.itemId,
+      title: item.title,
+      questionType: item.questionItem ? getQuestionType(item.questionItem.question) : 'no question'
+    })) : 'no items to map'
+  })
+  
   const answers: Record<string, any> = {}
   
   if (response.answers) {
@@ -160,9 +201,29 @@ function parseFormsResponse(response: any, formInfo: any) {
       const answer = response.answers[questionId]
       const question = findQuestionById(formInfo, questionId)
       
+      // 질문에서 제목 추출 (여러 경로 시도)
+      const questionTitle = question?.title || 
+                           question?.questionTitle ||
+                           question?.question?.title ||
+                           findQuestionTitleById(formInfo, questionId) ||
+                           'not found'
+      
+      console.log('🔍 질문 처리:', {
+        questionId,
+        hasAnswer: !!answer,
+        foundQuestion: !!question,
+        questionTitle: questionTitle,
+        questionDebug: {
+          directTitle: question?.title,
+          questionTitleProp: question?.questionTitle,
+          nestedTitle: question?.question?.title,
+          fromFormInfo: findQuestionTitleById(formInfo, questionId)
+        }
+      })
+      
       if (question) {
         answers[questionId] = {
-          questionTitle: question.title,
+          questionTitle: questionTitle,
           questionType: getQuestionType(question),
           answer: extractAnswerValue(answer)
         }
@@ -177,15 +238,57 @@ function parseFormsResponse(response: any, formInfo: any) {
   }
 }
 
-// 응답에서 학생 정보 추출 (첫 3개 질문 가정)
+// 응답에서 학생 정보 추출 (제목 기반으로 찾기)
 function extractStudentInfo(responseData: any) {
-  const answers = Object.values(responseData.answers) as any[]
+  console.log('🔍 extractStudentInfo 디버깅:', {
+    answersCount: Object.keys(responseData.answers).length,
+    answersEntries: Object.entries(responseData.answers).map(([id, data]: [string, any]) => ({
+      questionId: id,
+      questionTitle: data.questionTitle,
+      answer: data.answer
+    }))
+  })
   
-  // 순서대로 학생명, 학급, 학번이라고 가정
+  let studentName = ''
+  let className = ''  
+  let studentNumber = 0
+  
+  // 답변들을 순회하면서 학생 정보 찾기
+  for (const [questionId, answerData] of Object.entries(responseData.answers)) {
+    const data = answerData as any
+    const title = data.questionTitle || ''
+    const answer = data.answer || ''
+    
+    console.log('🔎 답변 분석:', {
+      questionId,
+      title,
+      answer,
+      titleCheck: {
+        isStudentName: title.includes('학생명') || title.includes('이름'),
+        isClassName: title.includes('학급') || title.includes('반'),
+        isStudentNumber: title.includes('학번') || title.includes('번호')
+      }
+    })
+    
+    if (title.includes('학생명') || title.includes('이름')) {
+      studentName = answer.toString()
+    } else if (title.includes('학급') || title.includes('반')) {
+      className = answer.toString()
+    } else if (title.includes('학번') || title.includes('번호')) {
+      studentNumber = parseInt(answer) || 0
+    }
+  }
+  
+  console.log('📋 최종 추출된 학생 정보:', {
+    studentName,
+    className,
+    studentNumber
+  })
+  
   return {
-    studentName: answers[0]?.answer || '',
-    className: answers[1]?.answer || '',
-    studentNumber: parseInt(answers[2]?.answer) || 0
+    studentName,
+    className,
+    studentNumber
   }
 }
 
@@ -239,9 +342,68 @@ async function findMatchingStudent(
 function findQuestionById(formInfo: any, questionId: string) {
   if (!formInfo?.items) return null
   
-  return formInfo.items.find((item: any) => 
+  // 먼저 itemId로 찾기
+  let foundItem = formInfo.items.find((item: any) => 
     item.questionItem && item.itemId === questionId
-  )?.questionItem?.question
+  )
+  
+  // itemId로 찾지 못하면 questionItem.question.questionId로 찾기  
+  if (!foundItem) {
+    foundItem = formInfo.items.find((item: any) => 
+      item.questionItem && item.questionItem.question && item.questionItem.question.questionId === questionId
+    )
+  }
+  
+  console.log('🔎 findQuestionById 결과:', {
+    searchingFor: questionId,
+    found: !!foundItem,
+    itemId: foundItem?.itemId,
+    title: foundItem?.title || foundItem?.questionItem?.question?.title,
+    hasQuestionItem: !!foundItem?.questionItem
+  })
+  
+  return foundItem?.questionItem?.question || foundItem?.questionItem || foundItem
+}
+
+// 질문 ID로 질문 제목 직접 찾기
+function findQuestionTitleById(formInfo: any, questionId: string): string | null {
+  if (!formInfo?.items) return null
+  
+  // formInfo.items에서 직접 title 찾기
+  for (const item of formInfo.items) {
+    // itemId 매칭 시도
+    if (item.itemId === questionId && item.title) {
+      console.log('🎯 제목 찾기 성공 (itemId):', {
+        questionId,
+        title: item.title,
+        method: 'itemId_match'
+      })
+      return item.title
+    }
+    
+    // questionItem.question.questionId 매칭 시도
+    if (item.questionItem && item.questionItem.question && 
+        item.questionItem.question.questionId === questionId && item.title) {
+      console.log('🎯 제목 찾기 성공 (questionId):', {
+        questionId,
+        title: item.title,
+        method: 'questionId_match'
+      })
+      return item.title
+    }
+  }
+  
+  console.log('❌ 제목 찾기 실패:', {
+    questionId,
+    availableItems: formInfo.items.map((item: any) => ({
+      itemId: item.itemId,
+      title: item.title,
+      hasQuestionItem: !!item.questionItem,
+      questionId: item.questionItem?.question?.questionId
+    }))
+  })
+  
+  return null
 }
 
 // 질문 타입 추출

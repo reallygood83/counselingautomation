@@ -106,6 +106,30 @@ export function StudentManager() {
     }
   }
 
+  // 학생 삭제
+  const handleDeleteStudent = async (studentId: string, studentName: string) => {
+    if (!confirm(`정말로 "${studentName}" 학생을 삭제하시겠습니까?\n\n삭제된 학생의 설문 응답 데이터도 함께 삭제됩니다.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/students/delete?studentId=${studentId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '학생 삭제 실패')
+      }
+
+      const data = await response.json()
+      alert(data.message)
+      loadStudents() // 목록 새로고침
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '학생 삭제 실패')
+    }
+  }
+
   // CSV 대량 등록
   const handleBulkUpload = async () => {
     if (!bulkData.trim()) {
@@ -255,6 +279,9 @@ export function StudentManager() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     등록일
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    액션
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -290,6 +317,14 @@ export function StudentManager() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(student.registeredAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Button
+                        onClick={() => handleDeleteStudent(student.id, student.studentName)}
+                        className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1"
+                      >
+                        삭제
+                      </Button>
                     </td>
                   </tr>
                 ))}
