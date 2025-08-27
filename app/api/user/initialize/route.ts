@@ -65,24 +65,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result)
 
     } catch (stepError) {
+      const error = stepError instanceof Error ? stepError : new Error(String(stepError))
+      
       console.error('초기화 단계별 오류 상세:', {
-        error: stepError.message,
-        stack: stepError.stack,
-        name: stepError.name
+        error: error.message,
+        stack: error.stack,
+        name: error.name
       })
       
       // 구체적인 오류 메시지 제공
       let errorMessage = '초기화 중 오류가 발생했습니다.'
-      if (stepError.message.includes('Forbidden')) {
+      if (error.message.includes('Forbidden')) {
         errorMessage = 'Google Drive 접근 권한이 부족합니다. 다시 로그인해주세요.'
-      } else if (stepError.message.includes('Failed to create')) {
+      } else if (error.message.includes('Failed to create')) {
         errorMessage = 'Google Drive 파일 생성에 실패했습니다.'
       }
       
       return NextResponse.json(
         { 
           error: errorMessage,
-          details: stepError.message
+          details: error.message
         },
         { status: 500 }
       )
