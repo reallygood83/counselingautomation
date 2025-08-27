@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     )
 
     const querySnapshot = await getDocs(q)
-    const surveys = []
+    const surveys: any[] = []
 
     querySnapshot.forEach((doc) => {
       const data = doc.data()
