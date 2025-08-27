@@ -221,7 +221,7 @@ export default function Dashboard() {
               <CardTitle>빠른 작업</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <Button 
                   variant="outline" 
                   className="h-16 flex flex-col gap-1"
@@ -230,6 +230,18 @@ export default function Dashboard() {
                   <span className="text-lg">💖</span>
                   <span className="text-sm">SEL 설문</span>
                 </Button>
+                <Link href="/teacher/students" className="block">
+                  <Button variant="outline" className="h-16 flex flex-col gap-1 w-full">
+                    <span className="text-lg">👥</span>
+                    <span className="text-sm">학생 관리</span>
+                  </Button>
+                </Link>
+                <Link href="/teacher/responses" className="block">
+                  <Button variant="outline" className="h-16 flex flex-col gap-1 w-full">
+                    <span className="text-lg">📋</span>
+                    <span className="text-sm">응답 확인</span>
+                  </Button>
+                </Link>
                 <Button variant="outline" className="h-16 flex flex-col gap-1">
                   <span className="text-lg">🪞</span>
                   <span className="text-sm">감정 분석</span>
