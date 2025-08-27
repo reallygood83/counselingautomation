@@ -25,9 +25,20 @@ export class GeminiClient {
 
   // SEL 설문 문항 생성
   async generateSelQuestions(config: SurveyConfig): Promise<SelQuestion[]> {
+    console.log('Gemini generateSelQuestions 시작:', { 
+      config, 
+      hasApiKey: !!this.apiKey,
+      apiKeyPrefix: this.apiKey ? this.apiKey.substring(0, 10) + '...' : 'none'
+    })
+    
     const prompt = this.buildSelPrompt(config)
+    console.log('Gemini 프롬프트 생성 완료:', { 
+      promptLength: prompt.length,
+      promptPreview: prompt.substring(0, 200) + '...'
+    })
     
     try {
+      console.log('Gemini API 호출 시작...')
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.apiKey}`, {
         method: 'POST',
         headers: {
@@ -42,18 +53,52 @@ export class GeminiClient {
         })
       })
 
+      console.log('Gemini API 응답 수신:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+
       if (!response.ok) {
-        throw new Error(`Gemini API 오류: ${response.statusText}`)
+        const errorText = await response.text()
+        console.error('Gemini API 오류 상세:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText
+        })
+        throw new Error(`Gemini API 오류: ${response.status} ${response.statusText} - ${errorText}`)
       }
 
       const data = await response.json()
-      const generatedText = data.candidates[0].content.parts[0].text
+      console.log('Gemini API JSON 파싱 성공:', {
+        hasCandidates: !!data.candidates,
+        candidatesLength: data.candidates?.length,
+        hasContent: !!data.candidates?.[0]?.content
+      })
       
-      return this.parseSelQuestions(generatedText)
+      const generatedText = data.candidates[0].content.parts[0].text
+      console.log('Gemini 응답 텍스트 추출 성공:', {
+        textLength: generatedText.length,
+        textPreview: generatedText.substring(0, 300) + '...'
+      })
+      
+      const questions = this.parseSelQuestions(generatedText)
+      console.log('Gemini 문항 파싱 완료:', {
+        questionsCount: questions.length,
+        questionCategories: questions.map(q => q.category)
+      })
+      
+      return questions
       
     } catch (error) {
-      console.error('SEL 문항 생성 오류:', error)
-      throw error
+      const err = error instanceof Error ? error : new Error(String(error))
+      console.error('Gemini generateSelQuestions 오류 상세:', {
+        error: err.message,
+        stack: err.stack,
+        name: err.name
+      })
+      throw err
     }
   }
 
