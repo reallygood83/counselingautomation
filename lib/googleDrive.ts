@@ -109,7 +109,7 @@ export class GoogleDriveClient {
   }
 
   // 폴더 찾기
-  private async findFolder(name: string) {
+  async findFolder(name: string) {
     const response = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='${name}' and mimeType='application/vnd.google-apps.folder'&fields=files(id,name)`,
       {
@@ -125,5 +125,63 @@ export class GoogleDriveClient {
 
     const data = await response.json()
     return data.files?.[0] || null
+  }
+
+  // 파일 찾기
+  async findFile(name: string) {
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${name}'&fields=files(id,name)`,
+      {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        }
+      }
+    )
+
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+    return data.files?.[0] || null
+  }
+
+  // 파일 다운로드
+  async downloadFile(fileId: string) {
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        }
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`)
+    }
+
+    return response.text()
+  }
+
+  // 파일 업데이트
+  async updateFile(fileId: string, content: string, mimeType: string) {
+    const response = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': mimeType,
+        },
+        body: content
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`Failed to update file: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 }

@@ -16,10 +16,10 @@ interface SurveyConfig {
 export class GeminiClient {
   private apiKey: string
 
-  constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY!
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey || process.env.GEMINI_API_KEY!
     if (!this.apiKey) {
-      throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.')
+      throw new Error('Gemini API 키가 제공되지 않았습니다.')
     }
   }
 

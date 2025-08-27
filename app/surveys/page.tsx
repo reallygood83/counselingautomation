@@ -8,7 +8,7 @@ import { SurveyGenerator } from '@/components/surveys/SurveyGenerator'
 
 export default function SurveysPage() {
   const [currentView, setCurrentView] = useState<'list' | 'generate'>('list')
-  const [surveys, setSurveys] = useState([])
+  const [surveys, setSurveys] = useState<any[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
   const [isInitializing, setIsInitializing] = useState(false)
 

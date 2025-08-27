@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 import { GeminiClient } from '@/lib/gemini'
 import { GoogleSheetsClient } from '@/lib/googleSheets'
+import { getGeminiApiKey } from '@/lib/userSettings'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,8 +26,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 사용자의 Gemini API 키 조회
+    const userApiKey = await getGeminiApiKey(session.accessToken)
+    if (!userApiKey) {
+      return NextResponse.json(
+        { error: 'Gemini API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 등록해주세요.' },
+        { status: 400 }
+      )
+    }
+
     // Gemini AI로 SEL 응답 분석
-    const geminiClient = new GeminiClient()
+    const geminiClient = new GeminiClient(userApiKey)
     const analysis = await geminiClient.analyzeSelResponses(responses, questions)
 
     // Google Sheets에 결과 저장
