@@ -52,6 +52,8 @@ export class GoogleDriveClient {
 
   // 파일 업로드 (보고서 등)
   async uploadFile(name: string, content: string, mimeType: string, parentId?: string) {
+    console.log('Google Drive uploadFile 시도:', { name, mimeType, hasParentId: !!parentId })
+    
     const metadata = {
       name,
       mimeType,
@@ -70,8 +72,16 @@ export class GoogleDriveClient {
       body: form
     })
 
+    console.log('Google Drive uploadFile 응답:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    })
+
     if (!response.ok) {
-      throw new Error(`Failed to upload file: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('Google Drive uploadFile 오류 상세:', errorText)
+      throw new Error(`Failed to upload file: ${response.statusText} - ${errorText}`)
     }
 
     return response.json()
