@@ -16,21 +16,17 @@ export interface CreateFormRequest {
 }
 
 export class GoogleFormsClient {
-  private driveClient: GoogleDriveClient
   private accessToken: string | null = null
   private userEmail: string | null = null
 
   constructor() {
-    this.driveClient = new GoogleDriveClient()
+    // accessToken은 initialize에서 설정됩니다
   }
 
-  async initialize(userEmail: string): Promise<void> {
+  async initialize(userEmail: string, accessToken: string): Promise<void> {
     console.log('Initializing GoogleFormsClient for:', userEmail)
     this.userEmail = userEmail
-    
-    // Google Drive 클라이언트 초기화
-    await this.driveClient.initialize(userEmail)
-    this.accessToken = this.driveClient.getAccessToken()
+    this.accessToken = accessToken
     
     if (!this.accessToken) {
       throw new Error('Google Forms API 접근을 위한 토큰을 찾을 수 없습니다.')

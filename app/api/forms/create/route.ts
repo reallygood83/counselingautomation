@@ -24,9 +24,18 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // session에서 accessToken 가져오기
+    const accessToken = (session as any).accessToken
+    if (!accessToken) {
+      console.log('No access token found in session')
+      return NextResponse.json({ 
+        error: 'Google API 접근 권한이 없습니다. 다시 로그인해주세요.' 
+      }, { status: 401 })
+    }
+
     // Google Forms API 클라이언트 초기화
     const formsClient = new GoogleFormsClient()
-    await formsClient.initialize(session.user.email)
+    await formsClient.initialize(session.user.email, accessToken)
 
     console.log('Creating Google Form with title:', survey.title)
     
