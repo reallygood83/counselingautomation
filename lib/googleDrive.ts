@@ -8,6 +8,8 @@ export class GoogleDriveClient {
 
   // 사용자의 Google Drive에 폴더 생성 (상담 자료용)
   async createFolder(name: string, parentId?: string) {
+    console.log('Google Drive createFolder 시도:', { name, hasParentId: !!parentId, hasAccessToken: !!this.accessToken })
+    
     const response = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
@@ -21,15 +23,27 @@ export class GoogleDriveClient {
       })
     })
 
+    console.log('Google Drive createFolder 응답:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    })
+
     if (!response.ok) {
-      throw new Error(`Failed to create folder: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('Google Drive createFolder 오류 상세:', errorText)
+      throw new Error(`Failed to create folder: ${response.statusText} - ${errorText}`)
     }
 
-    return response.json()
+    const result = await response.json()
+    console.log('Google Drive createFolder 성공:', { id: result.id, name: result.name })
+    return result
   }
 
   // 스프레드시트 생성 (학생 데이터용)
   async createSpreadsheet(title: string, parentId?: string) {
+    console.log('Google Drive createSpreadsheet 시도:', { title, hasParentId: !!parentId, hasAccessToken: !!this.accessToken })
+    
     const response = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
@@ -43,11 +57,21 @@ export class GoogleDriveClient {
       })
     })
 
+    console.log('Google Drive createSpreadsheet 응답:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    })
+
     if (!response.ok) {
-      throw new Error(`Failed to create spreadsheet: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('Google Drive createSpreadsheet 오류 상세:', errorText)
+      throw new Error(`Failed to create spreadsheet: ${response.statusText} - ${errorText}`)
     }
 
-    return response.json()
+    const result = await response.json()
+    console.log('Google Drive createSpreadsheet 성공:', { id: result.id, name: result.name })
+    return result
   }
 
   // 파일 업로드 (보고서 등)
@@ -120,6 +144,8 @@ export class GoogleDriveClient {
 
   // 폴더 찾기
   async findFolder(name: string) {
+    console.log('Google Drive findFolder 시도:', { name, hasAccessToken: !!this.accessToken })
+    
     const response = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='${name}' and mimeType='application/vnd.google-apps.folder'&fields=files(id,name)`,
       {
@@ -129,11 +155,20 @@ export class GoogleDriveClient {
       }
     )
 
+    console.log('Google Drive findFolder 응답:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    })
+
     if (!response.ok) {
-      return null
+      const errorText = await response.text()
+      console.error('Google Drive findFolder 오류 상세:', errorText)
+      throw new Error(`Failed to find folder: ${response.statusText} - ${errorText}`)
     }
 
     const data = await response.json()
+    console.log('Google Drive findFolder 결과:', { found: !!data.files?.[0], filesCount: data.files?.length })
     return data.files?.[0] || null
   }
 
