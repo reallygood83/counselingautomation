@@ -5,12 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { AuthGuard } from '@/components/auth/AuthButton'
 import { SurveyGenerator } from '@/components/surveys/SurveyGenerator'
+import { SurveyPreviewModal } from '@/components/surveys/SurveyPreviewModal'
 
 export default function SurveysPage() {
   const [currentView, setCurrentView] = useState<'list' | 'generate'>('list')
   const [surveys, setSurveys] = useState<any[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
   const [isInitializing, setIsInitializing] = useState(false)
+  const [selectedSurvey, setSelectedSurvey] = useState<any>(null)
+  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
     checkInitialization()
@@ -47,6 +50,36 @@ export default function SurveysPage() {
   const handleSurveyGenerated = (survey: any) => {
     setSurveys(prev => [survey, ...prev])
     setCurrentView('list')
+  }
+
+  const handlePreview = (survey: any) => {
+    setSelectedSurvey(survey)
+    setShowPreview(true)
+  }
+
+  const handleDeployToForms = async (survey: any) => {
+    try {
+      const response = await fetch('/api/forms/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(survey)
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Google Forms URL로 이동
+        window.open(data.formsUrl, '_blank')
+        alert('Google Forms가 성공적으로 생성되었습니다!')
+      } else {
+        alert('Forms 생성에 실패했습니다: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Forms 배포 오류:', error)
+      alert('Forms 배포 중 오류가 발생했습니다.')
+    }
   }
 
   if (!isInitialized) {
@@ -235,11 +268,19 @@ export default function SurveysPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm">
-                                미리보기
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handlePreview(survey)}
+                              >
+                                👀 미리보기
                               </Button>
-                              <Button size="sm">
-                                Forms 배포
+                              <Button 
+                                size="sm"
+                                variant="mira"
+                                onClick={() => handleDeployToForms(survey)}
+                              >
+                                📝 Forms 배포
                               </Button>
                             </div>
                           </div>
@@ -252,6 +293,17 @@ export default function SurveysPage() {
             </div>
           )}
         </div>
+
+        {/* 설문 미리보기 모달 */}
+        <SurveyPreviewModal
+          survey={selectedSurvey}
+          isOpen={showPreview}
+          onClose={() => {
+            setShowPreview(false)
+            setSelectedSurvey(null)
+          }}
+          onDeploy={handleDeployToForms}
+        />
       </div>
     </AuthGuard>
   )
