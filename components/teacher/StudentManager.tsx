@@ -153,7 +153,7 @@ export function StudentManager() {
   })
 
   // 고유 학급 목록
-  const uniqueClasses = [...new Set(students.map(s => s.className))].sort()
+  const uniqueClasses = Array.from(new Set(students.map(s => s.className))).sort()
 
   return (
     <div className="space-y-6">
