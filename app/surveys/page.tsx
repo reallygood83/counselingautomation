@@ -18,6 +18,7 @@ export default function SurveysPage() {
 
   useEffect(() => {
     checkInitialization()
+    loadSurveys() // Firebase에서 저장된 설문 불러오기
   }, [])
 
   const checkInitialization = async () => {
@@ -27,6 +28,23 @@ export default function SurveysPage() {
       setIsInitialized(data.initialized)
     } catch (error) {
       console.error('초기화 상태 확인 오류:', error)
+    }
+  }
+
+  const loadSurveys = async () => {
+    try {
+      console.log('Loading surveys from Firebase...')
+      const response = await fetch('/api/surveys/list')
+      const data = await response.json()
+      
+      if (data.success && data.surveys) {
+        console.log(`Loaded ${data.surveys.length} surveys from Firebase`)
+        setSurveys(data.surveys)
+      } else {
+        console.error('Failed to load surveys:', data.error)
+      }
+    } catch (error) {
+      console.error('설문 목록 로드 오류:', error)
     }
   }
 
@@ -49,8 +67,10 @@ export default function SurveysPage() {
   }
 
   const handleSurveyGenerated = (survey: any) => {
+    // 새로 생성된 설문을 목록 맨 앞에 추가
     setSurveys(prev => [survey, ...prev])
     setCurrentView('list')
+    console.log('Survey added to list:', survey.title)
   }
 
   const handlePreview = (survey: any) => {
@@ -71,6 +91,29 @@ export default function SurveysPage() {
       const data = await response.json()
       
       if (data.success) {
+        // Firebase에서 설문 상태 업데이트 (deployed로 변경)
+        if (survey.id && !survey.id.startsWith('temp-')) {
+          console.log('Updating survey status to deployed...')
+          await fetch('/api/surveys/update-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              surveyId: survey.id,
+              status: 'deployed',
+              formsUrl: data.formsUrl
+            })
+          })
+          
+          // 로컬 state 업데이트
+          setSurveys(prev => prev.map(s => 
+            s.id === survey.id 
+              ? { ...s, status: 'deployed', formsUrl: data.formsUrl }
+              : s
+          ))
+        }
+        
         // Google Forms URL로 이동
         window.open(data.formsUrl, '_blank')
         alert('Google Forms가 성공적으로 생성되었습니다!')
@@ -271,6 +314,21 @@ export default function SurveysPage() {
                                 <span>📊 {survey.questions?.length}문항</span>
                                 <span>⭐ {survey.difficultyLevel}</span>
                                 <span>📅 {new Date(survey.createdAt).toLocaleDateString()}</span>
+                                {survey.status === 'deployed' && (
+                                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    ✅ 배포됨
+                                  </span>
+                                )}
+                                {survey.status === 'created' && (
+                                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    📝 생성됨
+                                  </span>
+                                )}
+                                {survey.status === 'unsaved' && (
+                                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    ⚠️ 임시
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

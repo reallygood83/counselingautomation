@@ -83,8 +83,42 @@ export function SurveyGenerator({ onSurveyGenerated }: SurveyGeneratorProps) {
         throw new Error('서버 응답을 파싱할 수 없습니다.')
       }
 
-      if (onSurveyGenerated) {
-        onSurveyGenerated(data.survey)
+      // 생성된 설문을 Firestore에 저장
+      console.log('Saving survey to Firebase...')
+      const saveResponse = await fetch('/api/surveys/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data.survey)
+      })
+
+      const saveData = await saveResponse.json().catch(() => null)
+      
+      if (saveResponse.ok && saveData?.success) {
+        console.log('Survey saved successfully with ID:', saveData.id)
+        // ID 추가하여 부모 컴포넌트에 전달
+        const surveyWithId = {
+          ...data.survey,
+          id: saveData.id,
+          status: 'created',
+          createdAt: new Date().toISOString()
+        }
+        
+        if (onSurveyGenerated) {
+          onSurveyGenerated(surveyWithId)
+        }
+      } else {
+        console.error('Survey save failed:', saveData?.error)
+        // 저장 실패해도 설문은 전달 (메모리에서라도 사용 가능)
+        if (onSurveyGenerated) {
+          onSurveyGenerated({
+            ...data.survey,
+            id: 'temp-' + Date.now(),
+            status: 'unsaved',
+            createdAt: new Date().toISOString()
+          })
+        }
       }
       
     } catch (error: any) {

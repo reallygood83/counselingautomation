@@ -52,13 +52,12 @@ export class GoogleFormsClient {
       const auth = this.getAuth()
       const forms = google.forms({ version: 'v1', auth })
 
-      // 1. 빈 폼 생성
-      console.log('Step 1: Creating empty form')
+      // 1. 빈 폼 생성 (title만 설정)
+      console.log('Step 1: Creating empty form with title only')
       const createResponse = await forms.forms.create({
         requestBody: {
           info: {
-            title: formData.title,
-            description: formData.description
+            title: formData.title
           }
         }
       })
@@ -70,8 +69,32 @@ export class GoogleFormsClient {
 
       console.log('Form created with ID:', formId)
 
-      // 2. 질문 추가
-      console.log('Step 2: Adding questions to form')
+      // 2. 폼 설명 업데이트
+      console.log('Step 2: Adding description to form')
+      const descriptionRequests = []
+      if (formData.description) {
+        descriptionRequests.push({
+          updateFormInfo: {
+            info: {
+              description: formData.description
+            },
+            updateMask: 'description'
+          }
+        })
+      }
+
+      if (descriptionRequests.length > 0) {
+        await forms.forms.batchUpdate({
+          formId: formId,
+          requestBody: {
+            requests: descriptionRequests
+          }
+        })
+        console.log('Description added successfully')
+      }
+
+      // 3. 질문 추가
+      console.log('Step 3: Adding questions to form')
       const requests = formData.questions.map((q, index) => {
         let questionItem: any = {
           createItem: {
@@ -179,7 +202,7 @@ export class GoogleFormsClient {
         })
       }
 
-      // 3. 폼 URL 생성 및 반환
+      // 4. 폼 URL 생성 및 반환
       const formUrl = `https://docs.google.com/forms/d/${formId}/edit`
       console.log('Form created successfully:', formUrl)
 
