@@ -121,7 +121,7 @@ export async function POST(
     for (const savedResponse of savedResponses) {
       try {
         // 실제 응답 데이터 찾기
-        const originalResponse = responses.find(r => r.responseId === savedResponse.responseId)
+        const originalResponse = responses.find((r: any) => r.responseId === savedResponse.responseId)
         if (!originalResponse) continue
 
         // 간단한 SEL 점수 계산 (실제로는 더 복잡한 로직이 필요)
@@ -186,7 +186,7 @@ export async function POST(
 
 // 간단한 SEL 점수 계산 함수
 async function calculateSelScores(answers: Record<string, any>, questions: any[]): Promise<Record<string, number>> {
-  const selCategories = {
+  const selCategories: Record<string, number[]> = {
     selfAwareness: [],
     selfManagement: [],
     socialAwareness: [],
