@@ -33,11 +33,17 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
+    console.log('Access token available:', !!accessToken)
+    console.log('Session user email:', session.user.email)
+    
     // Google Forms API 클라이언트 초기화
+    console.log('Initializing GoogleFormsClient...')
     const formsClient = new GoogleFormsClient()
     await formsClient.initialize(session.user.email, accessToken)
+    console.log('GoogleFormsClient initialized successfully')
 
     console.log('Creating Google Form with title:', survey.title)
+    console.log('Survey questions count:', survey.questions?.length)
     
     // Google Forms 생성
     const formsUrl = await formsClient.createForm({
@@ -55,21 +61,36 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Forms create error:', error)
+    console.error('Forms create error - Full error object:', error)
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
     
     // 구체적인 에러 메시지 제공
     let errorMessage = 'Google Forms 생성 중 오류가 발생했습니다.'
     
     if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      })
+      
       if (error.message.includes('API key')) {
         errorMessage = 'Google Forms API 권한이 필요합니다. 설정에서 API 키를 확인해주세요.'
       } else if (error.message.includes('quota')) {
         errorMessage = 'API 할당량을 초과했습니다. 잠시 후 다시 시도해주세요.'
       } else if (error.message.includes('network')) {
         errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.'
+      } else if (error.message.includes('403')) {
+        errorMessage = 'Google Forms API 권한이 없습니다. Google Cloud Console에서 Forms API를 활성화하고 OAuth 범위를 승인해주세요.'
+      } else if (error.message.includes('401')) {
+        errorMessage = 'Google Forms API 인증에 실패했습니다. 다시 로그인해주세요.'
       } else {
-        errorMessage = error.message
+        errorMessage = `오류 세부정보: ${error.message}`
       }
+    } else {
+      console.error('Non-Error object thrown:', typeof error, error)
+      errorMessage = `알 수 없는 오류: ${JSON.stringify(error)}`
     }
 
     return NextResponse.json({ 
