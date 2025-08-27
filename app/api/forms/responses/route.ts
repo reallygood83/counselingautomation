@@ -5,6 +5,22 @@ import { google } from 'googleapis'
 import { db } from '@/lib/firebase'
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
 
+interface Student {
+  id: string
+  studentName: string
+  studentNumber: number
+  className: string
+  schoolName: string
+  teacherEmail: string
+  teacherName: string
+  registeredAt: any
+  status: string
+  surveyCount: number
+  lastSurveyAt?: any
+  notes: string
+  matchType?: string
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -179,7 +195,7 @@ async function findMatchingStudent(
   studentName: string, 
   className: string, 
   studentNumber: number
-) {
+): Promise<Student | null> {
   try {
     const studentsQuery = query(
       collection(db, 'students'),
@@ -197,7 +213,7 @@ async function findMatchingStudent(
         return {
           id: doc.id,
           ...student
-        }
+        } as Student
       }
     }
 
@@ -208,7 +224,7 @@ async function findMatchingStudent(
         id: snapshot.docs[0].id,
         ...student,
         matchType: 'partial' // 부분 매칭 표시
-      }
+      } as Student
     }
 
     return null
