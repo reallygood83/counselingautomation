@@ -1,17 +1,10 @@
 import { withAuth } from 'next-auth/middleware'
-import { NextRequest, NextResponse } from 'next/server'
 
 export default withAuth(
-  function middleware(request: NextRequest) {
-    // 인증이 필요한 페이지들에 대한 추가 처리
-    const { pathname } = request.nextUrl
-    
-    // 교사 페이지는 인증 필요
-    if (pathname.startsWith('/teacher') && !request.nextauth.token) {
-      return NextResponse.redirect(new URL('/auth/signin', request.url))
-    }
-    
-    return NextResponse.next()
+  // middleware 함수는 authorized가 true를 반환한 경우에만 실행됩니다
+  function middleware(req) {
+    // 추가적인 미들웨어 로직이 필요한 경우 여기에 작성
+    // 현재는 authorized 콜백에서 모든 인증 로직을 처리하므로 비워둡니다
   },
   {
     callbacks: {
