@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <!-- 메인 페이지 -->
+  <url>
+    <loc>https://miraclass.link/</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- 교사 로그인 -->
+  <url>
+    <loc>https://miraclass.link/auth/signin</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 교사 회원가입 -->
+  <url>
+    <loc>https://miraclass.link/auth/signup</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 교사 대시보드 (로그인 필요) -->
+  <url>
+    <loc>https://miraclass.link/teacher/dashboard</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- 설문 응답 확인 -->
+  <url>
+    <loc>https://miraclass.link/teacher/responses</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- SEL 보고서 -->
+  <url>
+    <loc>https://miraclass.link/teacher/reports</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- 감정 분석 -->
+  <url>
+    <loc>https://miraclass.link/teacher/emotion</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- 서비스 소개 -->
+  <url>
+    <loc>https://miraclass.link/about</loc>
+    <lastmod>2025-01-24T10:00:00+09:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

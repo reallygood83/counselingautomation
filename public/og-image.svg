@@ -1,0 +1,57 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f766e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  
+  <!-- 배경 -->
+  <rect width="1200" height="630" fill="url(#gradient)"/>
+  
+  <!-- 메인 컨테이너 -->
+  <rect x="80" y="80" width="1040" height="470" rx="24" fill="white" fill-opacity="0.95" filter="url(#shadow)"/>
+  
+  <!-- 로고 영역 -->
+  <circle cx="200" cy="200" r="50" fill="#0f766e" fill-opacity="0.1"/>
+  <circle cx="200" cy="200" r="35" fill="#0f766e"/>
+  <text x="200" y="210" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="28" font-weight="bold">M</text>
+  
+  <!-- 제목 -->
+  <text x="280" y="180" fill="#0f766e" font-family="Arial, sans-serif" font-size="52" font-weight="bold">MIRA</text>
+  <text x="280" y="220" fill="#6b7280" font-family="Arial, sans-serif" font-size="28">Mirroring Inner Reality and Affect</text>
+  
+  <!-- 부제목 -->
+  <text x="120" y="290" fill="#374151" font-family="Arial, sans-serif" font-size="32" font-weight="600">AI 기반 사회정서학습(SEL) 상담 시스템</text>
+  
+  <!-- 특징 포인트들 -->
+  <g transform="translate(120, 340)">
+    <!-- 학생 내면 분석 -->
+    <circle cx="15" cy="15" r="8" fill="#10b981"/>
+    <text x="35" y="20" fill="#374151" font-family="Arial, sans-serif" font-size="22">🧠 학생의 내면과 감정 분석</text>
+    
+    <!-- AI 기반 상담 -->
+    <circle cx="15" cy="55" r="8" fill="#8b5cf6"/>
+    <text x="35" y="60" fill="#374151" font-family="Arial, sans-serif" font-size="22">🤖 AI 기반 맞춤형 상담 지원</text>
+    
+    <!-- 실시간 데이터 -->
+    <circle cx="15" cy="95" r="8" fill="#f59e0b"/>
+    <text x="35" y="100" fill="#374151" font-family="Arial, sans-serif" font-size="22">📊 실시간 학습 데이터 분석</text>
+  </g>
+  
+  <!-- 하단 도메인 정보 -->
+  <text x="600" y="520" text-anchor="middle" fill="#6b7280" font-family="Arial, sans-serif" font-size="18">miraclass.link</text>
+  
+  <!-- 장식 요소들 -->
+  <circle cx="950" cy="150" r="3" fill="#0f766e" fill-opacity="0.3"/>
+  <circle cx="980" cy="180" r="5" fill="#7c3aed" fill-opacity="0.3"/>
+  <circle cx="920" cy="200" r="4" fill="#ec4899" fill-opacity="0.3"/>
+  
+  <circle cx="150" cy="450" r="3" fill="#0f766e" fill-opacity="0.2"/>
+  <circle cx="170" cy="480" r="4" fill="#7c3aed" fill-opacity="0.2"/>
+  <circle cx="190" cy="460" r="2" fill="#ec4899" fill-opacity="0.2"/>
+</svg>

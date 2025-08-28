@@ -1,0 +1,84 @@
+{
+  "name": "MIRA - Mirroring Inner Reality and Affect",
+  "short_name": "MIRA",
+  "description": "AI 기반 사회정서학습(SEL) 상담 시스템",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "categories": ["education", "productivity", "utilities"],
+  "lang": "ko",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "교사 대시보드",
+      "short_name": "대시보드",
+      "description": "교사용 메인 대시보드로 바로가기",
+      "url": "/teacher/dashboard",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "설문 응답 확인",
+      "short_name": "응답 확인",
+      "description": "학생 설문 응답 확인 페이지",
+      "url": "/teacher/responses",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "SEL 보고서",
+      "short_name": "SEL 보고서",
+      "description": "사회정서학습 보고서 페이지",
+      "url": "/teacher/reports",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "감정 분석",
+      "short_name": "감정 분석",
+      "description": "학생 감정 분석 페이지",
+      "url": "/teacher/emotion",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
