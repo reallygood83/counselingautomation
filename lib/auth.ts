@@ -47,7 +47,8 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/forms https://www.googleapis.com/auth/spreadsheets'
+          scope: 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/forms https://www.googleapis.com/auth/spreadsheets',
+          redirect_uri: undefined // NextAuth가 동적으로 처리하도록 함
         }
       }
     })
@@ -55,6 +56,8 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async redirect({ url, baseUrl }) {
       // 멀티 도메인 지원을 위한 redirect 콜백
+      console.log('Redirect callback:', { url, baseUrl })
+      
       try {
         const parsedUrl = new URL(url)
         const parsedBaseUrl = new URL(baseUrl)
@@ -66,19 +69,25 @@ export const authOptions: NextAuthOptions = {
                  parsedBaseUrl.hostname === parsedDomain.hostname
         })
         
+        console.log('Valid domain check:', { isValidDomain, validDomains: VALID_DOMAINS })
+        
         if (isValidDomain) {
           // 같은 도메인이면 그대로 리디렉션
           if (parsedUrl.hostname === parsedBaseUrl.hostname) {
+            console.log('Same domain redirect:', url)
             return url
           }
           // 다른 유효한 도메인으로의 리디렉션인 경우
-          return `${parsedBaseUrl.origin}${parsedUrl.pathname}${parsedUrl.search}`
+          const redirectUrl = `${parsedBaseUrl.origin}${parsedUrl.pathname}${parsedUrl.search}`
+          console.log('Cross-domain redirect:', redirectUrl)
+          return redirectUrl
         }
       } catch (error) {
-        console.log('Redirect URL parsing error:', error)
+        console.error('Redirect URL parsing error:', error)
       }
       
       // 기본적으로는 baseUrl로 리디렉션
+      console.log('Fallback redirect to baseUrl:', baseUrl)
       return baseUrl
     },
     async jwt({ token, account }) {
