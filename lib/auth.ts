@@ -16,11 +16,12 @@ const getBaseUrl = () => {
   }
   
   // 서버 사이드에서는 환경 변수 순서로 결정
+  // 멀티 도메인 지원을 위해 NEXTAUTH_URL 삭제 권장 - 동적 처리가 더 효과적
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL
   }
   
-  // Vercel 환경변수
+  // Vercel 환경변수 자동 사용 (멀티 도메인 지원)
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }

@@ -35,23 +35,26 @@ https://[기존-vercel-도메인].vercel.app/api/auth/callback/google
 5. Authorized redirect URIs에 위 URL들 모두 추가
 6. 저장
 
-## 🌐 Vercel 환경 변수 설정 옵션
+## 🌐 Vercel 환경 변수 설정 (권장)
 
-### 옵션 1: 커스텀 도메인 우선 (권장)
-```
-NEXTAUTH_URL=https://miraclass.link
-```
+### ✅ 멀티 도메인을 위한 최적 설정
+**NEXTAUTH_URL을 삭제하고 동적 처리 사용** (권장)
 
-### 옵션 2: 기존 Vercel 도메인 유지
-```
-# NEXTAUTH_URL 설정하지 않음 (VERCEL_URL 자동 사용)
-```
+Vercel 환경변수에서 `NEXTAUTH_URL`을 **삭제**하세요:
+- 삭제하면 NextAuth가 현재 요청의 Host 헤더를 자동으로 사용
+- miraclass.link와 Vercel 도메인 모두에서 자동으로 올바른 URL 생성
+- 더 유연하고 안정적인 멀티 도메인 지원
 
-### 공통 필수 환경 변수
+### 필수 환경 변수 (Vercel에서 유지)
 ```
 NEXTAUTH_SECRET=[기존-시크릿]
-GOOGLE_CLIENT_ID=[기존-클라이언트-ID]
+GOOGLE_CLIENT_ID=[기존-클라이언트-ID]  
 GOOGLE_CLIENT_SECRET=[기존-클라이언트-시크릿]
+```
+
+### ❌ 삭제할 환경 변수
+```
+NEXTAUTH_URL (삭제 권장 - 동적 처리가 더 효과적)
 ```
 
 ## ✨ 새로운 기능
@@ -68,8 +71,28 @@ GOOGLE_CLIENT_SECRET=[기존-클라이언트-시크릿]
 - 로컬 개발 환경에서도 포트 3000, 3001 모두 지원
 - 환경 변수 최소화로 설정 단순화
 
-## 🚀 배포 후 테스트 방법
+## 🚀 배포 및 설정 순서
 
+### 1단계: Vercel 환경변수 정리
+1. Vercel Dashboard → 프로젝트 → Settings → Environment Variables
+2. **NEXTAUTH_URL 삭제** (있다면)
+3. 다음 3개 환경변수만 유지:
+   - `NEXTAUTH_SECRET`
+   - `GOOGLE_CLIENT_ID` 
+   - `GOOGLE_CLIENT_SECRET`
+
+### 2단계: Google OAuth 설정
+1. [Google Cloud Console](https://console.cloud.google.com/)
+2. APIs & Services → Credentials → OAuth 2.0 클라이언트 ID
+3. Authorized redirect URIs에 4개 URL 모두 추가:
+   ```
+   http://localhost:3000/api/auth/callback/google
+   http://localhost:3001/api/auth/callback/google
+   https://miraclass.link/api/auth/callback/google
+   https://[기존-vercel-도메인].vercel.app/api/auth/callback/google
+   ```
+
+### 3단계: 배포 후 테스트
 1. **miraclass.link에서 테스트:**
    - https://miraclass.link 접속
    - 구글 로그인 시도
@@ -79,10 +102,6 @@ GOOGLE_CLIENT_SECRET=[기존-클라이언트-시크릿]
    - https://[기존-도메인].vercel.app 접속
    - 구글 로그인 시도
    - 정상 로그인 및 리디렉션 확인
-
-3. **도메인 간 이동 테스트:**
-   - 한 도메인에서 로그인 후 다른 도메인으로 이동
-   - 세션 유지 여부 확인
 
 ## 🔍 문제 해결
 
