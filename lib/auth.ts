@@ -5,7 +5,7 @@ import GoogleProvider from 'next-auth/providers/google'
 const getBaseUrl = () => {
   // 개발 환경
   if (process.env.NODE_ENV === 'development') {
-    return `http://localhost:${process.env.PORT || 3001}`
+    return `http://localhost:${process.env.PORT || 3000}`
   }
   
   // 프로덕션 환경에서 현재 요청의 Host 헤더를 기반으로 동적 결정
@@ -33,13 +33,17 @@ const getBaseUrl = () => {
 // 유효한 도메인 목록
 const VALID_DOMAINS = [
   'https://miraclass.link',
+  'https://counselingautomation.vercel.app',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-  'http://localhost:3001',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'http://localhost:3001'
 ].filter(Boolean) as string[]
 
 export const authOptions: NextAuthOptions = {
-  // 멀티 도메인 지원을 위해 site 속성 제거 - NextAuth가 Host 헤더 기반으로 동적 처리
+  // 개발 환경에서는 localhost, 프로덕션에서는 동적 URL 처리
+  ...(process.env.NODE_ENV === 'development' && {
+    site: 'http://localhost:3000'
+  }),
   
   providers: [
     GoogleProvider({
@@ -47,8 +51,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/forms https://www.googleapis.com/auth/spreadsheets',
-          redirect_uri: undefined // NextAuth가 동적으로 처리하도록 함
+          scope: 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/forms https://www.googleapis.com/auth/spreadsheets'
         }
       }
     })
