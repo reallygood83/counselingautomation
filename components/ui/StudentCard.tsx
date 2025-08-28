@@ -21,7 +21,6 @@ export interface StudentData {
 interface StudentCardProps {
   student: StudentData
   onViewDetails?: (studentId: string) => void
-  onCreateSurvey?: (studentId: string) => void
   compact?: boolean
 }
 
@@ -35,7 +34,6 @@ const crisisConfig = {
 export function StudentCard({ 
   student, 
   onViewDetails, 
-  onCreateSurvey, 
   compact = false 
 }: StudentCardProps) {
   const crisis = crisisConfig[student.crisisLevel]
@@ -80,6 +78,15 @@ export function StudentCard({
             )}>
               SEL 평균
             </p>
+            {/* 상세보기 버튼을 SEL 점수 아래로 이동 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewDetails?.(student.id)}
+              className="mt-2 px-3 py-1 text-xs bg-gradient-to-r from-teal-50 to-purple-50 border-teal-200 text-teal-700 hover:from-teal-100 hover:to-purple-100 hover:border-teal-300 transition-all duration-200"
+            >
+              상세보기
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -116,33 +123,12 @@ export function StudentCard({
 
         {student.lastSurveyDate && (
           <p className={clsx(
-            "text-gray-500 mb-3",
+            "text-gray-500",
             compact ? "text-xs" : "text-sm"
           )}>
             최근 설문: {student.lastSurveyDate}
           </p>
         )}
-
-        <div className={clsx(
-          "flex gap-2",
-          compact ? "flex-col" : "flex-row"
-        )}>
-          <Button
-            variant="outline"
-            size={compact ? "sm" : "default"}
-            onClick={() => onViewDetails?.(student.id)}
-            className="flex-1"
-          >
-            상세보기
-          </Button>
-          <Button
-            size={compact ? "sm" : "default"}
-            onClick={() => onCreateSurvey?.(student.id)}
-            className="flex-1"
-          >
-            설문 생성
-          </Button>
-        </div>
       </CardContent>
     </Card>
   )
