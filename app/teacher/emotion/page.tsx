@@ -1,42 +1,219 @@
 'use client'
 
-import { useState } from 'react'
+// 동적 페이지로 설정하여 정적 생성 시 Firebase auth 오류 방지
+export const dynamic = 'force-dynamic'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { TeacherNavigation } from '@/components/teacher/TeacherNavigation'
 
+interface Student {
+  id: string
+  name: string
+  class: string
+  selScores: {
+    selfAwareness: number
+    selfManagement: number
+    socialAwareness: number
+    relationship: number
+    decisionMaking: number
+  }
+  overallScore: number
+  analyzedAt: string
+}
+
 export default function EmotionAnalysisPage() {
+  const { data: session } = useSession()
+  const [students, setStudents] = useState<Student[]>([])
   const [selectedStudent, setSelectedStudent] = useState<string>('')
   const [analysisResult, setAnalysisResult] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const mockStudents = [
-    { id: '1', name: '김민수', class: '3학년 2반' },
-    { id: '2', name: '이지은', class: '3학년 2반' },
-    { id: '3', name: '박준호', class: '3학년 1반' }
-  ]
+  // 학생 데이터 로드
+  useEffect(() => {
+    if (session?.user?.email) {
+      loadStudents()
+    }
+  }, [session])
+
+  const loadStudents = async () => {
+    try {
+      setLoading(true)
+      console.log('감정분석용 학생 데이터 로드 중...')
+      
+      // Firebase를 동적으로 import
+      const { db } = await import('@/lib/firebase')
+      const { collection, query, where, getDocs } = await import('firebase/firestore')
+      
+      // 모든 분석 완료된 응답 조회
+      const responsesQuery = query(
+        collection(db, 'surveyResponses'),
+        where('teacherEmail', '==', session!.user!.email),
+        where('processed', '==', true),
+        where('analysisStatus', '==', 'completed')
+      )
+      const responsesSnapshot = await getDocs(responsesQuery)
+      
+      const studentsData: Student[] = responsesSnapshot.docs.map(doc => {
+        const data = doc.data()
+        const selScores = data.selScores || {}
+        const overallScore = Object.values(selScores).length > 0 
+          ? Object.values(selScores).reduce((sum: number, score: any) => sum + score, 0) / Object.values(selScores).length
+          : 0
+
+        return {
+          id: doc.id,
+          name: data.studentName || '이름 없음',
+          class: data.className || '반 정보 없음',
+          selScores,
+          overallScore,
+          analyzedAt: data.analyzedAt?.toDate()?.toISOString() || new Date().toISOString()
+        }
+      })
+
+      console.log(`${studentsData.length}명의 학생 데이터 로드 완료:`, studentsData)
+      setStudents(studentsData)
+      
+      // 첫 번째 학생 자동 선택
+      if (studentsData.length > 0) {
+        setSelectedStudent(studentsData[0].id)
+      }
+    } catch (error) {
+      console.error('학생 데이터 로드 실패:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleAnalyze = async () => {
+    if (!selectedStudent) return
+    
     setIsAnalyzing(true)
     
-    // Mock analysis delay
-    setTimeout(() => {
-      setAnalysisResult({
-        emotionalState: '약간 불안함',
-        confidence: 0.85,
-        insights: [
-          '최근 학업 스트레스가 증가한 것으로 보입니다.',
-          '친구 관계에서 약간의 어려움을 경험하고 있습니다.',
-          '자신감 회복을 위한 긍정적 피드백이 필요합니다.'
-        ],
-        recommendations: [
-          '개별 상담을 통한 스트레스 관리 방법 제공',
-          '소그룹 활동으로 친구 관계 개선 지원',
-          '성공 경험을 늘릴 수 있는 과제 제공'
+    try {
+      const student = students.find(s => s.id === selectedStudent)
+      if (!student) {
+        throw new Error('선택된 학생을 찾을 수 없습니다.')
+      }
+
+      console.log('SEL 데이터 기반 감정 분석:', student)
+      
+      // SEL 점수를 기반으로 감정 상태 분석
+      const { selScores } = student
+      const avgScore = student.overallScore
+      
+      let emotionalState = '보통'
+      let confidence = 0.8
+      let insights: string[] = []
+      let recommendations: string[] = []
+
+      // SEL 점수 기반 감정 상태 판단
+      if (avgScore >= 4.5) {
+        emotionalState = '매우 안정적'
+        confidence = 0.95
+        insights = [
+          '전반적으로 사회정서적 역량이 우수합니다.',
+          '자기관리 능력과 대인관계 기술이 뛰어납니다.',
+          '긍정적인 정서 상태를 유지하고 있습니다.'
         ]
+        recommendations = [
+          '현재의 긍정적 상태를 유지하도록 격려',
+          '다른 학생들을 도울 수 있는 리더십 기회 제공',
+          '더 도전적인 과제를 통한 성장 기회 제공'
+        ]
+      } else if (avgScore >= 4.0) {
+        emotionalState = '안정적'
+        confidence = 0.9
+        insights = [
+          '사회정서적 발달이 양호한 상태입니다.',
+          '대부분의 영역에서 적절한 역량을 보입니다.',
+          '전반적으로 긍정적인 정서를 유지합니다.'
+        ]
+        recommendations = [
+          '현재 수준을 유지하며 꾸준한 발전 도모',
+          '약간 부족한 영역에 대한 보완 활동 제공',
+          '자신감 강화를 위한 성취 경험 확대'
+        ]
+      } else if (avgScore >= 3.0) {
+        emotionalState = '보통'
+        confidence = 0.8
+        insights = [
+          '평균적인 사회정서적 발달 수준을 보입니다.',
+          '일부 영역에서 개선의 여지가 있습니다.',
+          '적절한 지원으로 향상 가능한 상태입니다.'
+        ]
+        recommendations = [
+          '개별 상담을 통한 맞춤형 지원 제공',
+          '부족한 영역을 중심으로 한 활동 프로그램 참여',
+          '또래와의 협력 활동을 통한 사회성 향상'
+        ]
+      } else if (avgScore >= 2.0) {
+        emotionalState = '주의 필요'
+        confidence = 0.85
+        insights = [
+          '사회정서적 발달에 어려움이 있는 것으로 보입니다.',
+          '정서 조절이나 대인관계에서 스트레스를 경험할 수 있습니다.',
+          '적극적인 지원과 개입이 필요한 상태입니다.'
+        ]
+        recommendations = [
+          '정기적인 개별 상담을 통한 정서적 지원',
+          '사회정서학습 프로그램 집중 참여',
+          '학부모와의 협력을 통한 가정 연계 지원'
+        ]
+      } else {
+        emotionalState = '적극적 개입 필요'
+        confidence = 0.9
+        insights = [
+          '사회정서적 발달에 상당한 어려움이 있습니다.',
+          '정서 조절, 대인관계, 의사결정 등 다방면에서 지원이 필요합니다.',
+          '전문적인 개입과 지속적인 관찰이 중요합니다.'
+        ]
+        recommendations = [
+          '전문 상담사와의 정기적 상담 진행',
+          '개별 맞춤형 사회정서학습 계획 수립',
+          '학부모, 담임교사, 상담교사 간 협력 체계 구축'
+        ]
+      }
+
+      // 특정 영역별 세부 분석
+      const lowScoreAreas = Object.entries(selScores)
+        .filter(([_, score]) => score < 3.0)
+        .map(([area, _]) => {
+          const areaNames: Record<string, string> = {
+            selfAwareness: '자기인식',
+            selfManagement: '자기관리',
+            socialAwareness: '사회적 인식',
+            relationship: '관계기술',
+            decisionMaking: '의사결정'
+          }
+          return areaNames[area] || area
+        })
+
+      if (lowScoreAreas.length > 0) {
+        insights.push(`특히 ${lowScoreAreas.join(', ')} 영역에서 추가 지원이 필요합니다.`)
+      }
+
+      setAnalysisResult({
+        student: student.name,
+        emotionalState,
+        confidence,
+        avgScore: avgScore.toFixed(1),
+        selScores,
+        insights,
+        recommendations,
+        analyzedAt: new Date().toLocaleString('ko-KR'),
+        lowScoreAreas
       })
+      
+    } catch (error) {
+      console.error('감정 분석 오류:', error)
+      alert('감정 분석 중 오류가 발생했습니다.')
+    } finally {
       setIsAnalyzing(false)
-    }, 2000)
+    }
   }
 
   return (
@@ -54,19 +231,34 @@ export default function EmotionAnalysisPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {mockStudents.map((student) => (
-                  <Button
-                    key={student.id}
-                    variant={selectedStudent === student.id ? 'default' : 'outline'}
-                    onClick={() => setSelectedStudent(student.id)}
-                    className="h-20 flex flex-col gap-1"
-                  >
-                    <div className="font-medium">{student.name}</div>
-                    <div className="text-sm text-gray-500">{student.class}</div>
-                  </Button>
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-2">학생 데이터 로드 중...</span>
+                </div>
+              ) : students.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="mb-4">📊 분석 가능한 학생 데이터가 없습니다.</p>
+                  <p className="text-sm">먼저 설문 응답 확인 섹션에서 설문을 수집하고 분석해주세요.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {students.map((student) => (
+                    <Button
+                      key={student.id}
+                      variant={selectedStudent === student.id ? 'default' : 'outline'}
+                      onClick={() => setSelectedStudent(student.id)}
+                      className="h-24 flex flex-col gap-1"
+                    >
+                      <div className="font-medium">{student.name}</div>
+                      <div className="text-sm text-gray-500">{student.class}</div>
+                      <div className="text-xs text-green-600">
+                        평균: {student.overallScore.toFixed(1)}점
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              )}
               
               {selectedStudent && (
                 <div className="mt-6">

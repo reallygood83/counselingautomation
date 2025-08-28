@@ -41,6 +41,29 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
   const [totalResponses, setTotalResponses] = useState(0)
   const [actualSurveyId, setActualSurveyId] = useState<string | null>(null)
 
+  // 컴포넌트 마운트 시 기존 저장된 응답 로드
+  useEffect(() => {
+    const loadExistingResponses = async () => {
+      let targetSurveyId = surveyId || actualSurveyId
+      
+      if (!targetSurveyId && formId) {
+        targetSurveyId = await findSurveyIdByFormId(formId)
+        if (targetSurveyId) {
+          setActualSurveyId(targetSurveyId)
+        }
+      }
+      
+      if (targetSurveyId) {
+        console.log('기존 저장된 응답 자동 로드:', targetSurveyId)
+        await loadSavedResponses(targetSurveyId)
+      }
+    }
+    
+    if (formId) {
+      loadExistingResponses()
+    }
+  }, [formId, surveyId])
+
   // formId로 surveyId 찾기
   const findSurveyIdByFormId = async (formId: string): Promise<string | null> => {
     try {
@@ -126,6 +149,33 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
     }
   }
 
+  // Firebase에서 저장된 응답 데이터 로드 (SEL 분석 결과 포함)
+  const loadSavedResponses = async (surveyId: string) => {
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}/saved-responses`)
+      const data = await response.json()
+      
+      if (response.ok && data.responses) {
+        // Firebase에 저장된 분석된 응답들로 상태 업데이트
+        const savedResponses = data.responses.map((resp: any) => ({
+          responseId: resp.responseId,
+          studentName: resp.studentName,
+          className: resp.className,
+          studentNumber: resp.studentNumber,
+          submittedAt: resp.submittedAt,
+          answers: resp.answers,
+          selScores: resp.selScores,
+          processed: resp.processed
+        }))
+        
+        setResponses(savedResponses)
+        console.log(`Firebase에서 ${savedResponses.length}개의 저장된 응답을 로드했습니다.`)
+      }
+    } catch (err) {
+      console.error('저장된 응답 로드 실패:', err)
+    }
+  }
+
   // 자동 수집 + SEL 분석
   const autoCollectAndAnalyze = async () => {
     try {
@@ -161,10 +211,10 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
         throw new Error(data.error || '자동 수집 및 분석 실패')
       }
 
-      alert(`🎉 자동 처리 완료!\n\n📊 수집: ${data.stats.savedResponses}개\n🧠 분석: ${data.stats.analyzedResponses}개\n❌ 매칭실패: ${data.stats.unmatchedResponses}개`)
+      alert(`🎉 자동 처리 완료!\n\n📊 수집: ${data.stats.savedResponses}개\n🧠 분석: ${data.stats.analyzedResponses}개\n❌ 매칭실패: ${data.stats.unmatchedResponses}개\n\n✅ 이제 SEL 보고서와 감정분석 섹션에서 분석 결과를 확인하실 수 있습니다!`)
       
-      // 응답 데이터 새로고침
-      await loadResponses()
+      // Firebase에 저장된 분석 결과 로드 (Google Forms 원본 데이터 대신)
+      await loadSavedResponses(targetSurveyId)
       
     } catch (err) {
       setError(err instanceof Error ? err.message : '자동 처리 중 오류 발생')
@@ -257,7 +307,7 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
                     응답 수
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
+                    SEL 분석 상태
                   </th>
                 </tr>
               </thead>
@@ -281,13 +331,23 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
                       {Object.keys(response.answers).length}개
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        response.processed 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {response.processed ? '처리 완료' : '처리 대기'}
-                      </span>
+                      <div className="space-y-1">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          response.processed 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {response.processed ? '✅ 분석 완료' : '⏳ 처리 대기'}
+                        </span>
+                        {response.selScores && (
+                          <div className="text-xs text-gray-500">
+                            📊 평균: {(
+                              Object.values(response.selScores).reduce((sum: number, score: any) => sum + score, 0) / 
+                              Object.values(response.selScores).length
+                            ).toFixed(1)}점
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
