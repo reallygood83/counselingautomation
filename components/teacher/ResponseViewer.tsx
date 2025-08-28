@@ -178,9 +178,17 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
 
   // 자동 수집 + SEL 분석
   const autoCollectAndAnalyze = async () => {
+    // 이미 로딩 중이면 중복 실행 방지
+    if (loading) {
+      console.log('이미 처리 중입니다. 중복 실행을 방지합니다.')
+      return
+    }
+
     try {
       setLoading(true)
       setError('')
+
+      console.log('🚀 자동 수집+분석 시작')
 
       // surveyId 확인 및 가져오기
       let targetSurveyId = surveyId || actualSurveyId
@@ -200,26 +208,33 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
       console.log('사용할 surveyId:', targetSurveyId)
 
       // 실제 surveyId를 사용하여 자동 수집 API 호출
+      console.log('📡 API 호출 시작:', `/api/surveys/${targetSurveyId}/responses`)
       const response = await fetch(`/api/surveys/${targetSurveyId}/responses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })
 
+      console.log('📡 API 응답 상태:', response.status, response.statusText)
       const data = await response.json()
       
       if (!response.ok) {
+        console.error('❌ API 오류:', data)
         throw new Error(data.error || '자동 수집 및 분석 실패')
       }
 
+      console.log('✅ 자동 처리 완료:', data)
       alert(`🎉 자동 처리 완료!\n\n📊 수집: ${data.stats.savedResponses}개\n🧠 분석: ${data.stats.analyzedResponses}개\n❌ 매칭실패: ${data.stats.unmatchedResponses}개\n\n✅ 이제 SEL 보고서와 감정분석 섹션에서 분석 결과를 확인하실 수 있습니다!`)
       
       // Firebase에 저장된 분석 결과 로드 (Google Forms 원본 데이터 대신)
+      console.log('📊 저장된 응답 로드 중...')
       await loadSavedResponses(targetSurveyId)
       
     } catch (err) {
+      console.error('❌ 자동 처리 오류:', err)
       setError(err instanceof Error ? err.message : '자동 처리 중 오류 발생')
     } finally {
       setLoading(false)
+      console.log('🏁 자동 수집+분석 종료')
     }
   }
 
@@ -237,25 +252,25 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
           <Button
             onClick={loadResponses}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '로딩 중...' : '📥 응답 불러오기'}
+            {loading ? '🔄 로딩 중...' : '📥 응답 불러오기'}
           </Button>
           {responses.length > 0 && (
             <>
               <Button
                 onClick={saveResponses}
                 disabled={loading}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                💾 Firebase 저장
+                {loading ? '🔄 저장 중...' : '💾 Firebase 저장'}
               </Button>
               <Button
                 onClick={autoCollectAndAnalyze}
                 disabled={loading}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                🤖 자동 수집+분석
+                {loading ? '🔄 처리 중...' : '🤖 자동 수집+분석'}
               </Button>
             </>
           )}
@@ -425,8 +440,12 @@ export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerPr
             아직 학생들이 설문에 응답하지 않았거나,<br/>
             응답을 불러오지 않았습니다.
           </p>
-          <Button onClick={loadResponses} disabled={loading}>
-            📥 응답 다시 확인하기
+          <Button 
+            onClick={loadResponses} 
+            disabled={loading}
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '🔄 확인 중...' : '📥 응답 다시 확인하기'}
           </Button>
         </Card>
       )}
