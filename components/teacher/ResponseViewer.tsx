@@ -29,15 +29,33 @@ interface UnmatchedResponse {
 
 interface ResponseViewerProps {
   formId: string
+  surveyId?: string // 선택적으로 변경
   formTitle?: string
 }
 
-export function ResponseViewer({ formId, formTitle }: ResponseViewerProps) {
+export function ResponseViewer({ formId, surveyId, formTitle }: ResponseViewerProps) {
   const [responses, setResponses] = useState<Response[]>([])
   const [unmatchedResponses, setUnmatchedResponses] = useState<UnmatchedResponse[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [totalResponses, setTotalResponses] = useState(0)
+  const [actualSurveyId, setActualSurveyId] = useState<string | null>(null)
+
+  // formId로 surveyId 찾기
+  const findSurveyIdByFormId = async (formId: string): Promise<string | null> => {
+    try {
+      const response = await fetch(`/api/surveys/list`)
+      const data = await response.json()
+      
+      if (response.ok && data.surveys) {
+        const survey = data.surveys.find((s: any) => s.formId === formId)
+        return survey ? survey.id : null
+      }
+    } catch (err) {
+      console.error('surveyId 찾기 실패:', err)
+    }
+    return null
+  }
 
   // 응답 데이터 로드
   const loadResponses = async () => {
@@ -89,7 +107,7 @@ export function ResponseViewer({ formId, formTitle }: ResponseViewerProps) {
         body: JSON.stringify({
           responses,
           formId,
-          surveyId: formId // 임시로 formId 사용
+          surveyId: surveyId || actualSurveyId || formId // surveyId 우선, 없으면 actualSurveyId, 최후에 formId
         })
       })
 
@@ -114,8 +132,25 @@ export function ResponseViewer({ formId, formTitle }: ResponseViewerProps) {
       setLoading(true)
       setError('')
 
-      // surveyId를 formId로 가정하고 자동 수집 API 호출
-      const response = await fetch(`/api/surveys/${formId}/responses`, {
+      // surveyId 확인 및 가져오기
+      let targetSurveyId = surveyId || actualSurveyId
+      
+      if (!targetSurveyId) {
+        console.log('surveyId를 찾는 중...')
+        targetSurveyId = await findSurveyIdByFormId(formId)
+        if (targetSurveyId) {
+          setActualSurveyId(targetSurveyId)
+        }
+      }
+
+      if (!targetSurveyId) {
+        throw new Error('해당 formId에 대응하는 설문을 찾을 수 없습니다. 먼저 설문을 생성하고 배포해주세요.')
+      }
+
+      console.log('사용할 surveyId:', targetSurveyId)
+
+      // 실제 surveyId를 사용하여 자동 수집 API 호출
+      const response = await fetch(`/api/surveys/${targetSurveyId}/responses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })
