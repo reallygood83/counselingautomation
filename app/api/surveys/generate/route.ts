@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { GeminiClient } from '@/lib/gemini'
 import { getGeminiApiKey } from '@/lib/userSettings'
 
+// 동적 API 라우트로 설정
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)

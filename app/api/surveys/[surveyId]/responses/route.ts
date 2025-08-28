@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 
+// 동적 API 라우트로 설정
+export const dynamic = 'force-dynamic'
+
 // 특정 설문의 응답을 자동으로 수집하고 분석하는 엔드포인트
 export async function POST(
   request: NextRequest,

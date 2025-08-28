@@ -1,13 +1,15 @@
 'use client'
 
+// 동적 페이지로 설정하여 정적 생성 시 Firebase auth 오류 방지
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { TeacherNavigation } from '@/components/teacher/TeacherNavigation'
 import { SELChart } from '@/components/charts/SELChart'
-import { db } from '@/lib/firebase'
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
+// Firebase imports를 런타임에 동적으로 로드하여 SSR 오류 방지
 
 interface SurveyResponse {
   id: string
@@ -75,6 +77,11 @@ export default function ReportsPage() {
   const loadSurveys = async () => {
     try {
       console.log('Loading surveys for user:', session!.user!.email)
+      
+      // Firebase를 동적으로 import
+      const { db } = await import('@/lib/firebase')
+      const { collection, query, where, getDocs } = await import('firebase/firestore')
+      
       const surveysQuery = query(
         collection(db, 'surveys'),
         where('userEmail', '==', session!.user!.email)
@@ -103,6 +110,10 @@ export default function ReportsPage() {
     setIsLoading(true)
     console.log('Loading responses for survey:', selectedSurvey)
     try {
+      // Firebase를 동적으로 import
+      const { db } = await import('@/lib/firebase')
+      const { collection, query, where, getDocs } = await import('firebase/firestore')
+      
       // 선택된 설문의 응답 데이터 로드
       const responsesQuery = query(
         collection(db, 'surveyResponses'),

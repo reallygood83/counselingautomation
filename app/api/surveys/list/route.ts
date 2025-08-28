@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/firebase'
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 
+// 동적 API 라우트로 설정하여 정적 생성 오류 방지
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   console.log('Survey list API called')
   
