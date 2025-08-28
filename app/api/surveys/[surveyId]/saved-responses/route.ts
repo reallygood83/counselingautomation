@@ -35,13 +35,16 @@ export async function GET(
     )
 
     const querySnapshot = await getDocs(q)
-    const responses = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      // Firestore timestamp를 JSON serializable로 변환
-      savedAt: doc.data().savedAt?.toDate()?.toISOString() || new Date().toISOString(),
-      analyzedAt: doc.data().analyzedAt?.toDate()?.toISOString() || null
-    }))
+    const responses = querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        // Firestore timestamp를 JSON serializable로 변환
+        savedAt: data.savedAt?.toDate()?.toISOString() || new Date().toISOString(),
+        analyzedAt: data.analyzedAt?.toDate()?.toISOString() || null
+      }
+    })
 
     console.log(`${responses.length}개의 저장된 응답을 찾았습니다.`)
 
@@ -49,8 +52,8 @@ export async function GET(
       success: true,
       responses,
       count: responses.length,
-      processedCount: responses.filter(r => r.processed === true).length,
-      analysisComplete: responses.filter(r => r.analysisStatus === 'completed').length
+      processedCount: responses.filter((r: any) => r.processed === true).length,
+      analysisComplete: responses.filter((r: any) => r.analysisStatus === 'completed').length
     })
 
   } catch (error) {
