@@ -1,14 +1,21 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
-// 동적 URL 처리 함수
+// 동적 URL 처리 함수 - 멀티 도메인 지원
 const getBaseUrl = () => {
   // 개발 환경
   if (process.env.NODE_ENV === 'development') {
-    return `http://localhost:${process.env.PORT || 3000}`
+    return `http://localhost:${process.env.PORT || 3001}`
   }
   
-  // 프로덕션 환경 - 커스텀 도메인 우선
+  // 프로덕션 환경에서 현재 요청의 Host 헤더를 기반으로 동적 결정
+  // 이는 NextAuth가 올바른 redirect_uri를 생성하도록 돕습니다
+  if (typeof window !== 'undefined') {
+    // 클라이언트 사이드에서는 현재 도메인 사용
+    return `${window.location.protocol}//${window.location.host}`
+  }
+  
+  // 서버 사이드에서는 환경 변수 순서로 결정
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL
   }
@@ -18,13 +25,20 @@ const getBaseUrl = () => {
     return `https://${process.env.VERCEL_URL}`
   }
   
-  // 기본값
+  // 기본값 (커스텀 도메인)
   return 'https://miraclass.link'
 }
 
+// 유효한 도메인 목록
+const VALID_DOMAINS = [
+  'https://miraclass.link',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  'http://localhost:3001',
+  'http://localhost:3000'
+].filter(Boolean) as string[]
+
 export const authOptions: NextAuthOptions = {
-  // NextAuth가 자동으로 리디렉션 URL을 생성하도록 설정
-  site: getBaseUrl(),
+  // 멀티 도메인 지원을 위해 site 속성 제거 - NextAuth가 Host 헤더 기반으로 동적 처리
   
   providers: [
     GoogleProvider({
@@ -38,6 +52,34 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // 멀티 도메인 지원을 위한 redirect 콜백
+      try {
+        const parsedUrl = new URL(url)
+        const parsedBaseUrl = new URL(baseUrl)
+        
+        // 현재 도메인이 유효한 도메인 목록에 있는지 확인
+        const isValidDomain = VALID_DOMAINS.some(domain => {
+          const parsedDomain = new URL(domain)
+          return parsedUrl.hostname === parsedDomain.hostname || 
+                 parsedBaseUrl.hostname === parsedDomain.hostname
+        })
+        
+        if (isValidDomain) {
+          // 같은 도메인이면 그대로 리디렉션
+          if (parsedUrl.hostname === parsedBaseUrl.hostname) {
+            return url
+          }
+          // 다른 유효한 도메인으로의 리디렉션인 경우
+          return `${parsedBaseUrl.origin}${parsedUrl.pathname}${parsedUrl.search}`
+        }
+      } catch (error) {
+        console.log('Redirect URL parsing error:', error)
+      }
+      
+      // 기본적으로는 baseUrl로 리디렉션
+      return baseUrl
+    },
     async jwt({ token, account }) {
       // Google OAuth 토큰을 JWT에 저장
       if (account) {
