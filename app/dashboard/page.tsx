@@ -68,10 +68,6 @@ export default function Dashboard() {
     setSelectedStudent(student || null)
   }
 
-  const handleCreateSurvey = (studentId: string) => {
-    console.log('Creating survey for student:', studentId)
-    window.location.href = '/surveys'
-  }
 
   const totalStudents = mockStudents.length
   const criticalStudents = mockStudents.filter(s => s.crisisLevel === 'critical').length
@@ -163,7 +159,6 @@ export default function Dashboard() {
                       key={student.id}
                       student={student}
                       onViewDetails={handleViewDetails}
-                      onCreateSurvey={handleCreateSurvey}
                       compact
                     />
                   ))}
