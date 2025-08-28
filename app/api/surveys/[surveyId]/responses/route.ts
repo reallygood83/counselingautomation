@@ -84,28 +84,71 @@ export async function POST(
       })
     }
 
-    // 3. Firebase에 응답 저장
+    // 3. Firebase에 응답 저장 (개선된 JSON 구조)
     console.log('Firebase에 응답 저장 시작')
     const savedResponses = []
     
     for (const response of responses) {
       try {
+        // 학생 식별 정보와 응답 데이터 분리
+        const { studentName, className, studentNumber, answers, ...otherData } = response
+        
+        // 응답 데이터를 JSON 형태로 구조화 (분석용)
+        const responseData = {
+          questions: Object.entries(answers || {}).map(([questionId, answerInfo], index) => ({
+            questionIndex: index + 1,
+            questionId,
+            questionTitle: (answerInfo as any)?.questionTitle || `질문 ${index + 1}`,
+            questionType: (answerInfo as any)?.questionType || 'text',
+            answer: (answerInfo as any)?.answer || null,
+            answerValue: (answerInfo as any)?.answer || null // 분석용 복사본
+          })),
+          metadata: {
+            totalQuestions: Object.keys(answers || {}).length,
+            completedQuestions: Object.values(answers || {}).filter(a => (a as any)?.answer).length,
+            responseLanguage: 'ko',
+            submissionMethod: 'google_forms'
+          }
+        }
+
         const responseDoc = {
-          ...response,
+          // 학생 식별 정보 (검색/필터용)
+          studentInfo: {
+            name: studentName,
+            class: className,
+            number: studentNumber
+          },
+          
+          // 분석용 JSON 구조화된 응답 데이터
+          responseData,
+          
+          // 원본 데이터 (호환성 유지)
+          originalAnswers: answers,
+          
+          // 메타데이터
           surveyId,
           formId,
+          responseId: otherData.responseId || null,
+          submittedAt: otherData.submittedAt || null,
           teacherEmail: session.user.email,
           savedAt: serverTimestamp(),
+          
+          // 분석 상태
           processed: false,
           selScores: null, // SEL 분석 결과는 나중에 업데이트
-          analysisStatus: 'pending'
+          analysisStatus: 'pending',
+          
+          // 데이터 버전 (향후 호환성)
+          dataVersion: '2.0',
+          dataStructure: 'json_optimized'
         }
 
         const docRef = await addDoc(collection(db, 'surveyResponses'), responseDoc)
         savedResponses.push({
           id: docRef.id,
-          responseId: response.responseId,
-          studentName: response.studentName
+          responseId: response.responseId || otherData.responseId,
+          studentName,
+          responseData // 분석용 JSON 데이터 포함
         })
 
         console.log('응답 저장 완료:', { docId: docRef.id, studentName: response.studentName })
@@ -117,42 +160,90 @@ export async function POST(
       }
     }
 
-    // 4. SEL 점수 자동 분석 (간단한 버전)
-    console.log('SEL 점수 자동 분석 시작')
+    // 4. SEL 점수 배치 분석 (API 한계 고려)
+    console.log('SEL 점수 배치 분석 시작')
     const analyzedResponses = []
+    const batchSize = 3 // API 한계를 고려한 배치 크기
+    const batches = []
     
-    for (const savedResponse of savedResponses) {
+    // 응답을 배치로 나누기
+    for (let i = 0; i < savedResponses.length; i += batchSize) {
+      batches.push(savedResponses.slice(i, i + batchSize))
+    }
+    
+    console.log(`총 ${savedResponses.length}개 응답을 ${batches.length}개 배치로 처리`)
+    
+    // 배치별 순차 처리
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex]
+      console.log(`배치 ${batchIndex + 1}/${batches.length} 처리 중 (${batch.length}개 응답)`)
+      
       try {
-        // 실제 응답 데이터 찾기
-        const originalResponse = responses.find((r: any) => r.responseId === savedResponse.responseId)
-        if (!originalResponse) continue
+        // 배치 내의 응답들을 병렬 처리
+        const batchPromises = batch.map(async (savedResponse) => {
+          try {
+            // 새로운 JSON 구조에서 데이터 추출
+            const responseData = savedResponse.responseData
+            if (!responseData || !responseData.questions) {
+              console.warn('응답 데이터 구조가 올바르지 않습니다:', savedResponse.id)
+              return null
+            }
 
-        // 간단한 SEL 점수 계산 (실제로는 더 복잡한 로직이 필요)
-        const selScores = await calculateSelScores(originalResponse.answers, surveyData.questions)
+            // 개선된 SEL 점수 계산 (JSON 구조 사용)
+            const selScores = await calculateSelScoresFromJson(responseData, surveyData.questions)
+            
+            // Firebase 업데이트
+            const responseRef = doc(db, 'surveyResponses', savedResponse.id)
+            await updateDoc(responseRef, {
+              selScores,
+              processed: true,
+              analysisStatus: 'completed',
+              analyzedAt: serverTimestamp(),
+              batchInfo: {
+                batchIndex: batchIndex + 1,
+                totalBatches: batches.length,
+                processedAt: new Date().toISOString()
+              }
+            })
+
+            console.log(`SEL 분석 완료 [배치 ${batchIndex + 1}]:`, { 
+              studentName: savedResponse.studentName, 
+              selScores 
+            })
+
+            return {
+              id: savedResponse.id,
+              studentName: savedResponse.studentName,
+              selScores
+            }
+          } catch (error) {
+            console.error(`개별 분석 실패 [배치 ${batchIndex + 1}]:`, { 
+              responseId: savedResponse.id,
+              studentName: savedResponse.studentName,
+              error: error instanceof Error ? error.message : error 
+            })
+            return null
+          }
+        })
         
-        // Firebase 업데이트
-        const responseRef = doc(db, 'surveyResponses', savedResponse.id)
-        await updateDoc(responseRef, {
-          selScores,
-          processed: true,
-          analysisStatus: 'completed',
-          analyzedAt: serverTimestamp()
-        })
-
-        analyzedResponses.push({
-          id: savedResponse.id,
-          studentName: savedResponse.studentName,
-          selScores
-        })
-
-        console.log('SEL 분석 완료:', { studentName: savedResponse.studentName, selScores })
-      } catch (analysisError) {
-        console.error('SEL 분석 실패:', { 
-          responseId: savedResponse.id, 
-          error: analysisError instanceof Error ? analysisError.message : analysisError 
-        })
+        // 배치 내 모든 분석 완료 대기
+        const batchResults = await Promise.all(batchPromises)
+        const successfulResults = batchResults.filter(result => result !== null)
+        analyzedResponses.push(...successfulResults)
+        
+        // API 한계 방지를 위한 배치 간 대기 (1초)
+        if (batchIndex < batches.length - 1) {
+          console.log('다음 배치 처리 전 1초 대기...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+        
+      } catch (batchError) {
+        console.error(`배치 ${batchIndex + 1} 처리 실패:`, batchError)
+        // 배치 실패 시에도 다음 배치 계속 처리
       }
     }
+    
+    console.log(`전체 배치 분석 완료: ${analyzedResponses.length}/${savedResponses.length} 성공`)
 
     // 5. 설문 통계 업데이트
     await updateDoc(surveyRef, {
@@ -187,7 +278,90 @@ export async function POST(
   }
 }
 
-// 간단한 SEL 점수 계산 함수
+// 개선된 SEL 점수 계산 함수 (JSON 구조용)
+async function calculateSelScoresFromJson(responseData: any, surveyQuestions: any[]): Promise<Record<string, number>> {
+  const selCategories: Record<string, number[]> = {
+    selfAwareness: [],
+    selfManagement: [],
+    socialAwareness: [],
+    relationship: [],
+    decisionMaking: []
+  }
+
+  console.log('JSON 구조 기반 SEL 점수 계산 시작:', {
+    questionsCount: responseData.questions?.length || 0,
+    metadata: responseData.metadata
+  })
+
+  // JSON 구조에서 질문과 답변 처리
+  if (responseData.questions && Array.isArray(responseData.questions)) {
+    responseData.questions.forEach((questionData: any, index: number) => {
+      try {
+        // 설문 설정에서 해당 질문의 카테고리 찾기
+        const category = surveyQuestions[index]?.category || 'selfAwareness'
+        const answerValue = questionData.answerValue || questionData.answer
+        
+        if (answerValue) {
+          const score = convertAnswerToScore(answerValue)
+          
+          if (selCategories[category as keyof typeof selCategories]) {
+            selCategories[category as keyof typeof selCategories].push(score)
+            console.log(`질문 ${index + 1}: ${category} → ${score}점`)
+          }
+        }
+      } catch (error) {
+        console.warn(`질문 ${index + 1} 처리 중 오류:`, error)
+      }
+    })
+  }
+
+  // 카테고리별 평균 점수 계산
+  const selScores: Record<string, number> = {}
+  Object.entries(selCategories).forEach(([category, scores]) => {
+    if (scores.length > 0) {
+      const average = scores.reduce((sum, score) => sum + score, 0) / scores.length
+      selScores[category] = Math.round(average * 10) / 10 // 소수점 1자리
+    } else {
+      selScores[category] = 3.0 // 기본 점수
+    }
+  })
+
+  console.log('SEL 점수 계산 완료:', selScores)
+  return selScores
+}
+
+// 답변을 점수로 변환하는 공통 함수
+function convertAnswerToScore(answerValue: any): number {
+  if (typeof answerValue !== 'string') {
+    return 3 // 기본 점수
+  }
+  
+  const answer = answerValue.toLowerCase()
+  
+  // 5점 척도 매핑
+  if (answer.includes('매우') || answer.includes('항상') || answer.includes('완전히')) {
+    return 5
+  } else if (answer.includes('자주') || answer.includes('잘') || answer.includes('대체로')) {
+    return 4
+  } else if (answer.includes('보통') || answer.includes('때때로') || answer.includes('가끔')) {
+    return 3
+  } else if (answer.includes('별로') || answer.includes('거의') || answer.includes('조금')) {
+    return 2
+  } else if (answer.includes('전혀') || answer.includes('없다') || answer.includes('안')) {
+    return 1
+  }
+  
+  // 숫자로 된 답변 처리
+  const numMatch = answer.match(/(\d+)/)
+  if (numMatch) {
+    const num = parseInt(numMatch[1])
+    return Math.min(Math.max(num, 1), 5) // 1-5 범위로 제한
+  }
+  
+  return 3 // 기본 점수
+}
+
+// 기존 SEL 점수 계산 함수 (호환성 유지)
 async function calculateSelScores(answers: Record<string, any>, questions: any[]): Promise<Record<string, number>> {
   const selCategories: Record<string, number[]> = {
     selfAwareness: [],
@@ -204,20 +378,7 @@ async function calculateSelScores(answers: Record<string, any>, questions: any[]
     
     if (answerId && answers[answerId]) {
       const answerValue = answers[answerId].answer
-      let score = 1 // 기본 점수
-      
-      // 답변을 점수로 변환 (간단한 로직)
-      if (typeof answerValue === 'string') {
-        if (answerValue.includes('매우') || answerValue.includes('항상')) {
-          score = 5
-        } else if (answerValue.includes('자주') || answerValue.includes('잘')) {
-          score = 4
-        } else if (answerValue.includes('보통') || answerValue.includes('때때로')) {
-          score = 3
-        } else if (answerValue.includes('가끔') || answerValue.includes('별로')) {
-          score = 2
-        }
-      }
+      const score = convertAnswerToScore(answerValue)
       
       if (selCategories[category as keyof typeof selCategories]) {
         selCategories[category as keyof typeof selCategories].push(score)
@@ -229,7 +390,8 @@ async function calculateSelScores(answers: Record<string, any>, questions: any[]
   const selScores: Record<string, number> = {}
   Object.entries(selCategories).forEach(([category, scores]) => {
     if (scores.length > 0) {
-      selScores[category] = scores.reduce((sum, score) => sum + score, 0) / scores.length
+      const average = scores.reduce((sum, score) => sum + score, 0) / scores.length
+      selScores[category] = Math.round(average * 10) / 10 // 소수점 1자리
     } else {
       selScores[category] = 3.0 // 기본 점수
     }

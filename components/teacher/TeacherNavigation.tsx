@@ -32,6 +32,14 @@ const navItems: NavItem[] = [
     priority: 'high'
   },
   {
+    id: 'saved-responses',
+    label: '저장된 응답',
+    icon: '💾',
+    href: '/teacher/saved-responses',
+    description: 'Firebase에 저장된 모든 설문 응답 관리',
+    priority: 'high'
+  },
+  {
     id: 'students',
     label: '학생 관리',
     icon: '👥',
