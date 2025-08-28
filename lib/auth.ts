@@ -1,7 +1,31 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
+// 동적 URL 처리 함수
+const getBaseUrl = () => {
+  // 개발 환경
+  if (process.env.NODE_ENV === 'development') {
+    return `http://localhost:${process.env.PORT || 3000}`
+  }
+  
+  // 프로덕션 환경 - 커스텀 도메인 우선
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL
+  }
+  
+  // Vercel 환경변수
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  
+  // 기본값
+  return 'https://miraclass.link'
+}
+
 export const authOptions: NextAuthOptions = {
+  // NextAuth가 자동으로 리디렉션 URL을 생성하도록 설정
+  site: getBaseUrl(),
+  
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
