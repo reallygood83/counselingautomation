@@ -89,11 +89,10 @@ export default function SavedResponsesPage() {
       const { db } = await import('@/lib/firebase')
       const { collection, query, where, orderBy, getDocs } = await import('firebase/firestore')
       
-      // 교사별 응답 조회
+      // 교사별 응답 조회 (인덱스 오류 임시 해결 - orderBy 제거)
       const responsesQuery = query(
         collection(db, 'surveyResponses'),
-        where('teacherEmail', '==', session!.user!.email),
-        orderBy('savedAt', 'desc')
+        where('teacherEmail', '==', session!.user!.email)
       )
       const responsesSnapshot = await getDocs(responsesQuery)
       
@@ -101,6 +100,13 @@ export default function SavedResponsesPage() {
         id: doc.id,
         ...doc.data()
       })) as SavedResponse[]
+
+      // 클라이언트 사이드에서 날짜순 정렬 (최신순)
+      responsesData.sort((a, b) => {
+        const aDate = a.savedAt?.toDate?.() || new Date(0)
+        const bDate = b.savedAt?.toDate?.() || new Date(0)
+        return bDate.getTime() - aDate.getTime()
+      })
 
       console.log(`${responsesData.length}개의 저장된 응답 로드 완료`)
       setResponses(responsesData)
