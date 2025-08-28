@@ -74,20 +74,23 @@ export default function ReportsPage() {
 
   const loadSurveys = async () => {
     try {
+      console.log('Loading surveys for user:', session!.user!.email)
       const surveysQuery = query(
         collection(db, 'surveys'),
-        where('createdBy', '==', session!.user!.email)
+        where('userEmail', '==', session!.user!.email)
       )
       const surveysSnapshot = await getDocs(surveysQuery)
       const surveysData = surveysSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
+      console.log('Found surveys:', surveysData.length, surveysData)
       setSurveys(surveysData)
       
       // 첫 번째 설문을 기본 선택
       if (surveysData.length > 0 && !selectedSurvey) {
         setSelectedSurvey(surveysData[0].id)
+        console.log('Auto-selected first survey:', surveysData[0].id)
       }
     } catch (error) {
       console.error('설문 목록 로드 실패:', error)
@@ -98,6 +101,7 @@ export default function ReportsPage() {
     if (!selectedSurvey) return
     
     setIsLoading(true)
+    console.log('Loading responses for survey:', selectedSurvey)
     try {
       // 선택된 설문의 응답 데이터 로드
       const responsesQuery = query(
@@ -111,8 +115,11 @@ export default function ReportsPage() {
         ...doc.data()
       } as SurveyResponse))
 
+      console.log(`Found ${responses.length} processed responses for survey ${selectedSurvey}:`, responses)
+
       // 통계 계산
       const calculatedData = calculateClassData(responses)
+      console.log('Calculated class data:', calculatedData)
       setClassData(calculatedData)
     } catch (error) {
       console.error('응답 데이터 로드 실패:', error)
