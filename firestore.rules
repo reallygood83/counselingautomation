@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 인증된 사용자만 접근 가능
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 학생 데이터 - 교사만 자신의 학생 데이터에 접근
+    match /students/{studentId} {
+      allow read, write: if request.auth != null 
+        && request.auth.token.email == resource.data.teacherEmail;
+      allow create: if request.auth != null;
+    }
+    
+    // 설문 데이터 - 교사만 자신의 설문에 접근
+    match /surveys/{surveyId} {
+      allow read, write: if request.auth != null 
+        && request.auth.token.email == resource.data.teacherEmail;
+      allow create: if request.auth != null;
+    }
+    
+    // 설문 응답 데이터 - 교사만 자신의 데이터에 접근
+    match /surveyResponses/{responseId} {
+      allow read, write: if request.auth != null 
+        && request.auth.token.email == resource.data.teacherEmail;
+      allow create: if request.auth != null;
+    }
+    
+    // 사용자 설정 데이터
+    match /userSettings/{userId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid == userId;
+    }
+  }
+}
