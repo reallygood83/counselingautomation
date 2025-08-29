@@ -310,8 +310,10 @@ SEL 5대 영역:
 
   // 평균 계산
   private average(numbers: number[]): number {
-    if (numbers.length === 0) return 0
-    return numbers.reduce((sum, num) => sum + num, 0) / numbers.length
+    if (numbers.length === 0) return 2.5 // SEL 척도 기본값 (중간값)
+    const sum = numbers.reduce((sum, num) => sum + num, 0)
+    const avg = sum / numbers.length
+    return Math.max(1, Math.min(5, avg)) // 1-5 범위로 제한
   }
 
   // 기본 문항 (Gemini API 실패 시 사용)

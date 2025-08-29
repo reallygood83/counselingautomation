@@ -171,7 +171,8 @@ export default function SavedResponsesPage() {
 
   const calculateOverallScore = (selScores: SavedResponse['selScores']) => {
     if (!selScores) return 0
-    const scores = Object.values(selScores)
+    const scores = Object.values(selScores).filter(score => score != null && !isNaN(score))
+    if (scores.length === 0) return 0
     return scores.reduce((sum, score) => sum + score, 0) / scores.length
   }
 
@@ -247,7 +248,8 @@ export default function SavedResponsesPage() {
       const result = await response.json()
 
       if (result.success) {
-        alert(`${studentName} 학생의 응답 분석이 완료되었습니다.\n총점: ${result.analysis.summary.totalScore.toFixed(1)}/5.0`)
+        const totalScore = result.analysis?.summary?.totalScore || 0
+        alert(`${studentName} 학생의 응답 분석이 완료되었습니다.\n총점: ${totalScore.toFixed(1)}/5.0`)
         await loadSavedResponses() // 목록 새로고침
       } else {
         throw new Error(result.error || '분석 실패')
@@ -450,14 +452,14 @@ export default function SavedResponsesPage() {
                       <div className="bg-gradient-to-r from-teal-50 to-purple-50 p-3 rounded-lg">
                         <div className="text-sm font-semibold text-teal-700 mb-2">📊 SEL 종합 점수</div>
                         <div className="text-lg font-bold text-purple-600">
-                          {calculateOverallScore(response.selScores).toFixed(1)} / 5.0
+                          {(calculateOverallScore(response.selScores) || 0).toFixed(1)} / 5.0
                         </div>
                         <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mt-2">
-                          <div>자기인식: {response.selScores.selfAwareness.toFixed(1)}</div>
-                          <div>자기관리: {response.selScores.selfManagement.toFixed(1)}</div>
-                          <div>사회인식: {response.selScores.socialAwareness.toFixed(1)}</div>
-                          <div>관계기술: {response.selScores.relationship.toFixed(1)}</div>
-                          <div className="col-span-2">의사결정: {response.selScores.decisionMaking.toFixed(1)}</div>
+                          <div>자기인식: {(response.selScores.selfAwareness || 0).toFixed(1)}</div>
+                          <div>자기관리: {(response.selScores.selfManagement || 0).toFixed(1)}</div>
+                          <div>사회인식: {(response.selScores.socialAwareness || 0).toFixed(1)}</div>
+                          <div>관계기술: {(response.selScores.relationship || 0).toFixed(1)}</div>
+                          <div className="col-span-2">의사결정: {(response.selScores.decisionMaking || 0).toFixed(1)}</div>
                         </div>
                       </div>
                     )}

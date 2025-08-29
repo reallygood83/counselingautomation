@@ -101,9 +101,24 @@ export async function POST(
     const studentName = responseData.studentInfo?.name || responseData.studentName || '알 수 없음'
     const className = responseData.studentInfo?.class || responseData.className || ''
 
+    // 분석 데이터 디버깅 로그
+    console.log('분석 데이터 확인:', {
+      responsesKeys: Object.keys(analysisData.responses),
+      responsesValues: Object.values(analysisData.responses),
+      questionsCount: analysisData.questions.length,
+      questionsCategories: analysisData.questions.map((q: any) => q.category)
+    })
+
     // Gemini AI로 SEL 분석 실행
     const geminiClient = new GeminiClient(userApiKey)
     const analysis = await geminiClient.analyzeSelResponses(analysisData.responses, analysisData.questions)
+    
+    console.log('Gemini 분석 결과:', {
+      scores: analysis.scores,
+      hasInsights: !!analysis.insights,
+      hasRecommendations: !!analysis.recommendations,
+      crisisLevel: analysis.crisisLevel
+    })
 
     // 분석 결과로 응답 업데이트
     await updateDoc(responseDocRef, {
