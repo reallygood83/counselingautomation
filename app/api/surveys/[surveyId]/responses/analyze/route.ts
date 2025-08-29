@@ -33,6 +33,11 @@ export async function POST(
 
     const responseData = responseDoc.data()
     
+    // 실제 데이터 구조 로깅
+    console.log('=== 실제 응답 데이터 구조 확인 ===')
+    console.log('전체 데이터 키들:', Object.keys(responseData))
+    console.log('responseData:', JSON.stringify(responseData, null, 2))
+    
     // 교사 권한 확인
     if (responseData.teacherEmail !== session.user.email) {
       return NextResponse.json({ error: '분석 권한이 없습니다' }, { status: 403 })
@@ -50,7 +55,17 @@ export async function POST(
     // 응답 데이터 추출 (새/기존 구조 호환)
     let analysisData: any = {}
     
+    console.log('=== 응답 데이터 구조 분석 ===')
+    console.log('responseData.responseData 존재:', !!responseData.responseData)
+    console.log('responseData.responseData?.questions 존재:', !!responseData.responseData?.questions)
+    console.log('responseData.answers 존재:', !!responseData.answers)
+    console.log('responseData.originalAnswers 존재:', !!responseData.originalAnswers)
+    
     if (responseData.responseData?.questions) {
+      console.log('새로운 JSON 구조 사용')
+      console.log('questions 배열 길이:', responseData.responseData.questions.length)
+      console.log('첫 번째 질문 구조:', JSON.stringify(responseData.responseData.questions[0], null, 2))
+      
       // 새로운 JSON 구조 - SEL 카테고리 매핑
       const responses: Record<string, number> = {}
       const selQuestions: any[] = []
@@ -60,6 +75,13 @@ export async function POST(
       
       responseData.responseData.questions.forEach((q: any, index: number) => {
         const questionKey = `q${index}`
+        console.log(`질문 ${index}:`, {
+          questionTitle: q.questionTitle,
+          answer: q.answer,
+          answerValue: q.answerValue,
+          originalValue: q.answer || q.answerValue
+        })
+        
         const answerValue = parseInt(q.answer || q.answerValue || '0')
         responses[questionKey] = answerValue
         
@@ -72,17 +94,25 @@ export async function POST(
         })
       })
       
+      console.log('생성된 responses:', responses)
+      console.log('생성된 selQuestions 개수:', selQuestions.length)
+      
       analysisData = { responses, questions: selQuestions }
     } else if (responseData.answers || responseData.originalAnswers) {
+      console.log('기존 구조 사용')
       // 기존 구조 - 질문 재구성 필요
       const rawResponses = responseData.originalAnswers || responseData.answers
+      console.log('rawResponses:', JSON.stringify(rawResponses, null, 2))
+      
       const responses: Record<string, number> = {}
       const selQuestions: any[] = []
       const selCategories = ['selfAwareness', 'selfManagement', 'socialAwareness', 'relationship', 'decisionMaking']
       
       Object.entries(rawResponses).forEach(([key, value], index) => {
         const questionKey = `q${index}`
-        responses[questionKey] = parseInt(String(value) || '0')
+        const parsedValue = parseInt(String(value) || '0')
+        console.log(`기존 구조 질문 ${index} (${key}): ${value} -> ${parsedValue}`)
+        responses[questionKey] = parsedValue
         
         selQuestions.push({
           category: selCategories[index % 5],
@@ -92,8 +122,11 @@ export async function POST(
         })
       })
       
+      console.log('기존 구조 - 생성된 responses:', responses)
       analysisData = { responses, questions: selQuestions }
     } else {
+      console.error('분석할 데이터가 없습니다!')
+      console.log('사용 가능한 키들:', Object.keys(responseData))
       return NextResponse.json({ error: '분석할 응답 데이터가 없습니다' }, { status: 400 })
     }
 
@@ -110,8 +143,18 @@ export async function POST(
     })
 
     // Gemini AI로 SEL 분석 실행
-    const geminiClient = new GeminiClient(userApiKey)
-    const analysis = await geminiClient.analyzeSelResponses(analysisData.responses, analysisData.questions)
+    console.log('=== Gemini 분석 시작 ===')
+    console.log('API 키 존재:', !!userApiKey)
+    
+    let analysis
+    try {
+      const geminiClient = new GeminiClient(userApiKey)
+      analysis = await geminiClient.analyzeSelResponses(analysisData.responses, analysisData.questions)
+      console.log('Gemini 분석 성공!')
+    } catch (geminiError) {
+      console.error('Gemini 분석 중 오류:', geminiError)
+      throw new Error(`Gemini 분석 실패: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}`)
+    }
     
     console.log('Gemini 분석 결과:', {
       scores: analysis.scores,
