@@ -39,7 +39,7 @@ export async function POST(
     }
 
     // 사용자의 Gemini API 키 조회
-    const userApiKey = await getGeminiApiKey(session.accessToken)
+    const userApiKey = await getGeminiApiKey(session.accessToken || '')
     if (!userApiKey) {
       return NextResponse.json(
         { error: 'Gemini API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 등록해주세요.' },

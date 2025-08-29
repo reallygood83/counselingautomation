@@ -49,8 +49,8 @@ export async function POST(
     const studentNumber = responseData.studentInfo?.number || responseData.studentNumber || 0
 
     // SEL 점수 및 분석 데이터
-    const selScores = responseData.selScores
-    const totalScore = responseData.totalScore || Object.values(selScores).reduce((sum: any, score: any) => sum + score, 0) / 5
+    const selScores = responseData.selScores as Record<string, number>
+    const totalScore = responseData.totalScore || Object.values(selScores || {}).reduce((sum: any, score: any) => sum + score, 0) / 5
     const insights = responseData.aiInsights || []
     const recommendations = responseData.recommendations || []
     const crisisLevel = responseData.crisisLevel || 'normal'
