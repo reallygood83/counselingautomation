@@ -115,29 +115,41 @@ export async function POST(
     
     console.log('Gemini 분석 결과:', {
       scores: analysis.scores,
+      scoresDetail: JSON.stringify(analysis.scores),
       hasInsights: !!analysis.insights,
       hasRecommendations: !!analysis.recommendations,
       crisisLevel: analysis.crisisLevel
     })
+    
+    // 점수 검증 및 기본값 설정
+    const validatedScores = {
+      selfAwareness: analysis.scores.selfAwareness || 2.5,
+      selfManagement: analysis.scores.selfManagement || 2.5,
+      socialAwareness: analysis.scores.socialAwareness || 2.5,
+      relationship: analysis.scores.relationship || 2.5,
+      decisionMaking: analysis.scores.decisionMaking || 2.5
+    }
+    
+    console.log('검증된 점수:', validatedScores)
 
-    // 분석 결과로 응답 업데이트
+    // 분석 결과로 응답 업데이트 (검증된 점수 사용)
     await updateDoc(responseDocRef, {
-      selScores: analysis.scores,
+      selScores: validatedScores,
       analysisStatus: 'completed',
       analyzedAt: new Date(),
       aiInsights: analysis.insights,
       recommendations: analysis.recommendations,
       crisisLevel: analysis.crisisLevel,
-      totalScore: Object.values(analysis.scores).reduce((sum: any, score: any) => sum + score, 0) / 5
+      totalScore: Object.values(validatedScores).reduce((sum, score) => sum + score, 0) / 5
     })
 
     const summary = {
-      totalScore: Object.values(analysis.scores).reduce((sum: any, score: any) => sum + score, 0) / 5,
-      strongestArea: Object.entries(analysis.scores).reduce((max: any, [key, value]: [string, any]) => 
+      totalScore: Object.values(validatedScores).reduce((sum, score) => sum + score, 0) / 5,
+      strongestArea: Object.entries(validatedScores).reduce((max: any, [key, value]: [string, any]) => 
         value > max.value ? { area: key, value } : max, 
         { area: '', value: 0 }
       ),
-      weakestArea: Object.entries(analysis.scores).reduce((min: any, [key, value]: [string, any]) => 
+      weakestArea: Object.entries(validatedScores).reduce((min: any, [key, value]: [string, any]) => 
         value < min.value ? { area: key, value } : min, 
         { area: '', value: 5 }
       )
@@ -147,7 +159,7 @@ export async function POST(
       success: true,
       message: `${studentName} 학생의 응답 분석이 완료되었습니다`,
       analysis: {
-        scores: analysis.scores,
+        scores: validatedScores,
         insights: analysis.insights,
         recommendations: analysis.recommendations,
         crisisLevel: analysis.crisisLevel,

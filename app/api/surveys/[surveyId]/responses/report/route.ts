@@ -36,21 +36,25 @@ export async function POST(
       return NextResponse.json({ error: '리포트 생성 권한이 없습니다' }, { status: 403 })
     }
 
-    // 분석이 완료되었는지 확인
-    if (!responseData.selScores || responseData.analysisStatus !== 'completed') {
+    // 분석이 완료되었는지 확인 (더 유연한 체크)
+    if (!responseData.selScores || Object.keys(responseData.selScores || {}).length === 0) {
       return NextResponse.json({ 
         error: '분석이 완료되지 않은 응답입니다. 먼저 분석을 실행해주세요.' 
       }, { status: 400 })
     }
+
+    console.log('리포트 생성 - SEL 점수:', responseData.selScores)
+    console.log('리포트 생성 - 분석 상태:', responseData.analysisStatus)
 
     // 학생 정보 추출
     const studentName = responseData.studentInfo?.name || responseData.studentName || '알 수 없음'
     const className = responseData.studentInfo?.class || responseData.className || ''
     const studentNumber = responseData.studentInfo?.number || responseData.studentNumber || 0
 
-    // SEL 점수 및 분석 데이터
+    // SEL 점수 및 분석 데이터 (null 안전성 확보)
     const selScores = responseData.selScores as Record<string, number>
-    const totalScore = responseData.totalScore || Object.values(selScores || {}).reduce((sum: any, score: any) => sum + score, 0) / 5
+    const validScores = Object.values(selScores || {}).filter(score => score != null && !isNaN(score))
+    const totalScore = responseData.totalScore || (validScores.length > 0 ? validScores.reduce((sum, score) => sum + score, 0) / validScores.length : 0)
     const insights = responseData.aiInsights || []
     const recommendations = responseData.recommendations || []
     const crisisLevel = responseData.crisisLevel || 'normal'
@@ -144,7 +148,7 @@ export async function POST(
 
         <!-- 종합 점수 -->
         <div class="total-score">
-            <div class="total-score-value">${totalScore.toFixed(1)}/5.0</div>
+            <div class="total-score-value">${(totalScore || 0).toFixed(1)}/5.0</div>
             <div class="total-score-label">SEL 종합 점수</div>
             <p style="margin-top: 15px; opacity: 0.9;">${currentCrisis.message}</p>
         </div>
@@ -153,9 +157,9 @@ export async function POST(
         <div class="section">
             <h2 class="section-title">📊 SEL 영역별 분석</h2>
             <div class="scores-grid">
-                ${Object.entries(selScores).map(([key, score]: [string, any]) => `
+                ${Object.entries(selScores || {}).map(([key, score]: [string, any]) => `
                     <div class="score-card">
-                        <div class="score-value">${score.toFixed(1)}</div>
+                        <div class="score-value">${(score || 0).toFixed(1)}</div>
                         <div class="score-label">${(selAreas as any)[key]?.name || key}</div>
                         <div class="score-desc">${(selAreas as any)[key]?.desc || ''}</div>
                     </div>
@@ -198,7 +202,7 @@ export async function POST(
                 labels: ['자기인식', '자기관리', '사회적 인식', '관계 기술', '의사결정'],
                 datasets: [{
                     label: 'SEL 점수',
-                    data: [${selScores.selfAwareness}, ${selScores.selfManagement}, ${selScores.socialAwareness}, ${selScores.relationship}, ${selScores.decisionMaking}],
+                    data: [${selScores.selfAwareness || 0}, ${selScores.selfManagement || 0}, ${selScores.socialAwareness || 0}, ${selScores.relationship || 0}, ${selScores.decisionMaking || 0}],
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 2,
@@ -236,7 +240,7 @@ export async function POST(
         studentName,
         className,
         studentNumber,
-        totalScore: totalScore.toFixed(1),
+        totalScore: (totalScore || 0).toFixed(1),
         crisisLevel: currentCrisis.level,
         htmlContent: htmlReport,
         generatedAt: new Date().toISOString()
