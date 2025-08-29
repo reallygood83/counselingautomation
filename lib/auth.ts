@@ -150,6 +150,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // JWT 토큰을 세션에 포함
       session.accessToken = token.accessToken
+      session.refreshToken = token.refreshToken
       session.error = token.error
       return session
     },

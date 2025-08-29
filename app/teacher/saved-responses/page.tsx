@@ -195,8 +195,14 @@ export default function SavedResponsesPage() {
     try {
       setProcessingIds(prev => new Set(prev).add(responseId))
       
-      const response = await fetch(`/api/surveys/temp/responses/delete?responseId=${responseId}`, {
-        method: 'DELETE'
+      // 응답에서 surveyId 찾기
+      const targetResponse = responses.find(r => r.id === responseId)
+      const surveyId = targetResponse?.surveyId || 'temp'
+      
+      const response = await fetch(`/api/surveys/${surveyId}/responses/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responseId })
       })
 
       const result = await response.json()
@@ -228,7 +234,11 @@ export default function SavedResponsesPage() {
     try {
       setProcessingIds(prev => new Set(prev).add(responseId))
       
-      const response = await fetch(`/api/surveys/temp/responses/analyze`, {
+      // 응답에서 surveyId 찾기
+      const targetResponse = responses.find(r => r.id === responseId)
+      const surveyId = targetResponse?.surveyId || 'temp'
+      
+      const response = await fetch(`/api/surveys/${surveyId}/responses/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ responseId })
@@ -259,7 +269,11 @@ export default function SavedResponsesPage() {
     try {
       setProcessingIds(prev => new Set(prev).add(responseId))
       
-      const response = await fetch(`/api/surveys/temp/responses/report`, {
+      // 응답에서 surveyId 찾기
+      const targetResponse = responses.find(r => r.id === responseId)
+      const surveyId = targetResponse?.surveyId || 'temp'
+      
+      const response = await fetch(`/api/surveys/${surveyId}/responses/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ responseId })

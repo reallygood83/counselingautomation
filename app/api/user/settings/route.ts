@@ -17,13 +17,24 @@ export async function GET() {
     const session = await getServerSession(authOptions)
     console.log('GET /api/user/settings - 세션 상태:', { 
       hasSession: !!session, 
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email,
       hasAccessToken: !!session?.accessToken,
+      tokenExpiry: session?.expires,
       sessionError: session?.error 
     })
     
+    if (!session?.user?.email) {
+      console.error('GET /api/user/settings - 인증되지 않은 사용자')
+      return NextResponse.json({ error: 'Unauthorized - No user session' }, { status: 401 })
+    }
+    
     if (!session?.accessToken) {
-      console.error('GET /api/user/settings - AccessToken 없음')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.error('GET /api/user/settings - AccessToken 없음', {
+        hasRefreshToken: !!session?.refreshToken,
+        sessionError: session?.error
+      })
+      return NextResponse.json({ error: 'Unauthorized - No access token' }, { status: 401 })
     }
 
     const driveClient = new GoogleDriveClient(session.accessToken)
@@ -61,13 +72,24 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     console.log('POST /api/user/settings - 세션 상태:', { 
       hasSession: !!session, 
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email,
       hasAccessToken: !!session?.accessToken,
+      tokenExpiry: session?.expires,
       sessionError: session?.error 
     })
     
+    if (!session?.user?.email) {
+      console.error('POST /api/user/settings - 인증되지 않은 사용자')
+      return NextResponse.json({ error: 'Unauthorized - No user session' }, { status: 401 })
+    }
+    
     if (!session?.accessToken) {
-      console.error('POST /api/user/settings - AccessToken 없음')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.error('POST /api/user/settings - AccessToken 없음', {
+        hasRefreshToken: !!session?.refreshToken,
+        sessionError: session?.error
+      })
+      return NextResponse.json({ error: 'Unauthorized - No access token' }, { status: 401 })
     }
 
     const { geminiApiKey } = await request.json()
