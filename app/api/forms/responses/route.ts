@@ -114,6 +114,21 @@ export async function GET(request: NextRequest) {
         })
 
         if (matchedStudent) {
+          // 응답 데이터를 표준화된 JSON 구조로 변환
+          const standardizedQuestions = Object.values(responseData.answers).map((answerData: any, index: number) => ({
+            questionTitle: answerData.questionTitle || `질문 ${index + 1}`,
+            answer: answerData.answer,
+            answerValue: answerData.answer,
+            questionType: answerData.questionType || 'choice',
+            index: index
+          }))
+          
+          console.log('✨ 표준화된 응답 구조:', {
+            studentName: matchedStudent.studentName,
+            questionsCount: standardizedQuestions.length,
+            questions: standardizedQuestions
+          })
+
           processedResponses.push({
             responseId: response.responseId,
             formId: formId,
@@ -122,7 +137,18 @@ export async function GET(request: NextRequest) {
             className: matchedStudent.className,
             studentNumber: matchedStudent.studentNumber,
             submittedAt: response.lastSubmittedTime,
+            // 기존 구조 유지 (호환성)
             answers: responseData.answers,
+            // 새로운 표준화된 구조 추가
+            responseData: {
+              questions: standardizedQuestions
+            },
+            // 학생 정보 구조화
+            studentInfo: {
+              name: matchedStudent.studentName,
+              class: matchedStudent.className,
+              number: matchedStudent.studentNumber
+            },
             selScores: null, // 분석 후 계산됨
             processed: false
           })

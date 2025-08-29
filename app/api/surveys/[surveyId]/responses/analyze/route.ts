@@ -75,14 +75,45 @@ export async function POST(
       
       responseData.responseData.questions.forEach((q: any, index: number) => {
         const questionKey = `q${index}`
+        
+        // 다양한 응답 형태 처리
+        let rawAnswer = q.answer || q.answerValue || ''
+        
+        // 만약 answer가 배열이라면 첫 번째 값 사용
+        if (Array.isArray(rawAnswer)) {
+          rawAnswer = rawAnswer[0]
+        }
+        
+        // 문자열에서 숫자 추출 (예: "4점" -> 4, "매우 그렇다" -> 5)
+        let answerValue = 0
+        if (typeof rawAnswer === 'string') {
+          // 숫자가 포함된 문자열에서 숫자 추출
+          const numMatch = rawAnswer.match(/\d+/)
+          if (numMatch) {
+            answerValue = parseInt(numMatch[0])
+          } else {
+            // 텍스트 응답을 숫자로 매핑
+            const textToNumber: { [key: string]: number } = {
+              '전혀 그렇지 않다': 1,
+              '그렇지 않다': 2, 
+              '보통이다': 3,
+              '그렇다': 4,
+              '매우 그렇다': 5,
+              '1점': 1, '2점': 2, '3점': 3, '4점': 4, '5점': 5
+            }
+            answerValue = textToNumber[rawAnswer] || parseInt(rawAnswer) || 0
+          }
+        } else {
+          answerValue = parseInt(String(rawAnswer)) || 0
+        }
+        
         console.log(`질문 ${index}:`, {
           questionTitle: q.questionTitle,
-          answer: q.answer,
-          answerValue: q.answerValue,
-          originalValue: q.answer || q.answerValue
+          rawAnswer: rawAnswer,
+          extractedValue: answerValue,
+          answerType: typeof rawAnswer
         })
         
-        const answerValue = parseInt(q.answer || q.answerValue || '0')
         responses[questionKey] = answerValue
         
         // SEL 질문 구조 생성
