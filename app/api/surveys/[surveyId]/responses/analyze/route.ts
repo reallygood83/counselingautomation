@@ -51,29 +51,48 @@ export async function POST(
     let analysisData: any = {}
     
     if (responseData.responseData?.questions) {
-      // 새로운 JSON 구조
-      const responses: Record<string, any> = {}
-      const questions = responseData.responseData.questions.map((q: any, index: number) => ({
-        id: q.questionId || `question_${index}`,
-        title: q.questionTitle || `질문 ${index + 1}`,
-        type: q.questionType || 'TEXT'
-      }))
+      // 새로운 JSON 구조 - SEL 카테고리 매핑
+      const responses: Record<string, number> = {}
+      const selQuestions: any[] = []
+      
+      // SEL 카테고리 매핑 (기본값)
+      const selCategories = ['selfAwareness', 'selfManagement', 'socialAwareness', 'relationship', 'decisionMaking']
       
       responseData.responseData.questions.forEach((q: any, index: number) => {
-        responses[q.questionId || `question_${index}`] = q.answer || q.answerValue
+        const questionKey = `q${index}`
+        const answerValue = parseInt(q.answer || q.answerValue || '0')
+        responses[questionKey] = answerValue
+        
+        // SEL 질문 구조 생성
+        selQuestions.push({
+          category: selCategories[index % 5], // 5개 카테고리 순환
+          question: q.questionTitle || `질문 ${index + 1}`,
+          options: ['전혀 그렇지 않다', '그렇지 않다', '보통이다', '그렇다', '매우 그렇다'],
+          weight: 1
+        })
       })
       
-      analysisData = { responses, questions }
+      analysisData = { responses, questions: selQuestions }
     } else if (responseData.answers || responseData.originalAnswers) {
       // 기존 구조 - 질문 재구성 필요
-      const responses = responseData.originalAnswers || responseData.answers
-      const questions = Object.keys(responses).map((key, index) => ({
-        id: key,
-        title: `질문 ${index + 1}`,
-        type: 'TEXT'
-      }))
+      const rawResponses = responseData.originalAnswers || responseData.answers
+      const responses: Record<string, number> = {}
+      const selQuestions: any[] = []
+      const selCategories = ['selfAwareness', 'selfManagement', 'socialAwareness', 'relationship', 'decisionMaking']
       
-      analysisData = { responses, questions }
+      Object.entries(rawResponses).forEach(([key, value], index) => {
+        const questionKey = `q${index}`
+        responses[questionKey] = parseInt(String(value) || '0')
+        
+        selQuestions.push({
+          category: selCategories[index % 5],
+          question: `질문 ${index + 1}`,
+          options: ['전혀 그렇지 않다', '그렇지 않다', '보통이다', '그렇다', '매우 그렇다'],
+          weight: 1
+        })
+      })
+      
+      analysisData = { responses, questions: selQuestions }
     } else {
       return NextResponse.json({ error: '분석할 응답 데이터가 없습니다' }, { status: 400 })
     }

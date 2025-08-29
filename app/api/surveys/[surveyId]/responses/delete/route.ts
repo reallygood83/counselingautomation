@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/firebase'
 import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 
-export async function DELETE(
+export async function POST(
   request: NextRequest,
   { params }: { params: { surveyId: string } }
 ) {
@@ -15,8 +15,7 @@ export async function DELETE(
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
     }
 
-    const url = new URL(request.url)
-    const responseId = url.searchParams.get('responseId')
+    const { responseId } = await request.json()
 
     if (!responseId) {
       return NextResponse.json({ error: '응답 ID가 필요합니다' }, { status: 400 })
