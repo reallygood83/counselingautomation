@@ -72,6 +72,8 @@ export default function SavedResponsesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedResponse, setSelectedResponse] = useState<SavedResponse | null>(null)
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
+  const [reportData, setReportData] = useState<{html: string, studentName: string} | null>(null)
 
   // 저장된 응답 데이터 로드
   useEffect(() => {
@@ -181,6 +183,107 @@ export default function SavedResponsesPage() {
         return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">⏳ 대기중</span>
       default:
         return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">❓ 알수없음</span>
+    }
+  }
+
+  // 응답 삭제 함수
+  const deleteResponse = async (responseId: string, studentName: string) => {
+    if (!confirm(`${studentName} 학생의 응답을 정말 삭제하시겠습니까?`)) {
+      return
+    }
+
+    try {
+      setProcessingIds(prev => new Set(prev).add(responseId))
+      
+      const response = await fetch(`/api/surveys/temp/responses/delete?responseId=${responseId}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`${studentName} 학생의 응답이 삭제되었습니다.`)
+        await loadSavedResponses() // 목록 새로고침
+      } else {
+        throw new Error(result.error || '삭제 실패')
+      }
+    } catch (error) {
+      console.error('응답 삭제 오류:', error)
+      alert('응답 삭제 중 오류가 발생했습니다.')
+    } finally {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(responseId)
+        return newSet
+      })
+    }
+  }
+
+  // 개별 응답 분석 함수
+  const analyzeResponse = async (responseId: string, studentName: string) => {
+    if (!confirm(`${studentName} 학생의 응답을 분석하시겠습니까?`)) {
+      return
+    }
+
+    try {
+      setProcessingIds(prev => new Set(prev).add(responseId))
+      
+      const response = await fetch(`/api/surveys/temp/responses/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responseId })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`${studentName} 학생의 응답 분석이 완료되었습니다.\n총점: ${result.analysis.summary.totalScore.toFixed(1)}/5.0`)
+        await loadSavedResponses() // 목록 새로고침
+      } else {
+        throw new Error(result.error || '분석 실패')
+      }
+    } catch (error) {
+      console.error('응답 분석 오류:', error)
+      alert('응답 분석 중 오류가 발생했습니다: ' + (error as Error).message)
+    } finally {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(responseId)
+        return newSet
+      })
+    }
+  }
+
+  // 상담 리포트 생성 함수
+  const generateReport = async (responseId: string, studentName: string) => {
+    try {
+      setProcessingIds(prev => new Set(prev).add(responseId))
+      
+      const response = await fetch(`/api/surveys/temp/responses/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responseId })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setReportData({
+          html: result.report.htmlContent,
+          studentName: result.report.studentName
+        })
+      } else {
+        throw new Error(result.error || '리포트 생성 실패')
+      }
+    } catch (error) {
+      console.error('리포트 생성 오류:', error)
+      alert('리포트 생성 중 오류가 발생했습니다: ' + (error as Error).message)
+    } finally {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(responseId)
+        return newSet
+      })
     }
   }
 
@@ -354,15 +457,51 @@ export default function SavedResponsesPage() {
                     </div>
                     
                     {/* 액션 버튼 */}
-                    <div className="pt-3 border-t">
+                    <div className="pt-3 border-t space-y-2">
                       <Button
                         onClick={() => setSelectedResponse(response)}
                         variant="outline"
                         size="sm"
                         className="w-full text-xs bg-gradient-to-r from-teal-50 to-purple-50 border-teal-200 text-teal-700 hover:bg-gradient-to-r hover:from-teal-100 hover:to-purple-100"
+                        disabled={processingIds.has(response.id)}
                       >
                         📋 상세 응답 보기
                       </Button>
+                      
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* 분석 버튼 */}
+                        <Button
+                          onClick={() => analyzeResponse(response.id, studentInfo.name)}
+                          variant="outline" 
+                          size="sm"
+                          className="text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                          disabled={processingIds.has(response.id)}
+                        >
+                          {processingIds.has(response.id) ? '🔄' : '🔍'} 분석
+                        </Button>
+                        
+                        {/* 리포트 버튼 */}
+                        <Button
+                          onClick={() => generateReport(response.id, studentInfo.name)}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                          disabled={processingIds.has(response.id) || response.analysisStatus !== 'completed'}
+                        >
+                          {processingIds.has(response.id) ? '🔄' : '📊'} 리포트
+                        </Button>
+                        
+                        {/* 삭제 버튼 */}
+                        <Button
+                          onClick={() => deleteResponse(response.id, studentInfo.name)}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                          disabled={processingIds.has(response.id)}
+                        >
+                          {processingIds.has(response.id) ? '🔄' : '🗑️'} 삭제
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -465,6 +604,70 @@ export default function SavedResponsesPage() {
               </div>
             )
           })()}
+
+          {/* 상담 리포트 모달 */}
+          {reportData && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+                <div className="flex justify-between items-center p-6 border-b">
+                  <h2 className="text-xl font-bold text-teal-700">
+                    📊 {reportData.studentName} 학생 SEL 상담 리포트
+                  </h2>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        const blob = new Blob([reportData.html], { type: 'text/html' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${reportData.studentName}_SEL상담리포트_${new Date().toISOString().split('T')[0]}.html`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                    >
+                      💾 다운로드
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const printWindow = window.open('', '_blank')
+                        if (printWindow) {
+                          printWindow.document.write(reportData.html)
+                          printWindow.document.close()
+                          printWindow.focus()
+                          printWindow.print()
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    >
+                      🖨️ 인쇄
+                    </Button>
+                    <Button
+                      onClick={() => setReportData(null)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      ✕ 닫기
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto">
+                  <iframe
+                    srcDoc={reportData.html}
+                    className="w-full h-full min-h-[600px] border-0"
+                    title="SEL 상담 리포트"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

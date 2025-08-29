@@ -13,16 +13,33 @@ import { SELChart } from '@/components/charts/SELChart'
 
 interface SurveyResponse {
   id: string
-  studentName: string
+  surveyId: string
+  
+  // 새로운 구조 (v2.0) 호환
+  studentInfo?: {
+    name: string
+    class: string
+    number: number
+  }
+  
+  // 기존 구조 호환성
+  studentName?: string
+  className?: string
+  studentNumber?: number
+  
   selScores: {
     selfAwareness: number
     selfManagement: number
     socialAwareness: number
     relationship: number
     decisionMaking: number
-  }
-  analyzedAt: string
-  overallScore: number
+  } | null
+  analyzedAt: any
+  overallScore?: number
+  totalScore?: number
+  analysisStatus: string
+  processed: boolean
+  teacherEmail: string
 }
 
 interface ClassData {
@@ -105,38 +122,69 @@ export default function ReportsPage() {
   }
 
   const loadSurveyResponses = async () => {
-    if (!selectedSurvey) return
-    
     setIsLoading(true)
-    console.log('Loading responses for survey:', selectedSurvey)
+    console.log('Loading responses for teacher:', session?.user?.email)
+    
     try {
       // Firebase를 동적으로 import
       const { db } = await import('@/lib/firebase')
       const { collection, query, where, getDocs } = await import('firebase/firestore')
       
-      // 선택된 설문의 응답 데이터 로드
+      // 저장된 응답 관리와 동일한 방식으로 교사의 모든 응답 데이터 로드
       const responsesQuery = query(
         collection(db, 'surveyResponses'),
-        where('surveyId', '==', selectedSurvey),
-        where('processed', '==', true)
+        where('teacherEmail', '==', session!.user!.email)
       )
       const responsesSnapshot = await getDocs(responsesQuery)
-      const responses: SurveyResponse[] = responsesSnapshot.docs.map(doc => ({
+      
+      let allResponses: SurveyResponse[] = responsesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as SurveyResponse))
 
-      console.log(`Found ${responses.length} processed responses for survey ${selectedSurvey}:`, responses)
+      // 분석 완료된 응답만 필터링
+      allResponses = allResponses.filter(response => 
+        response.selScores && response.analysisStatus === 'completed'
+      )
+
+      // 선택된 설문이 있으면 해당 설문만 필터링
+      if (selectedSurvey && selectedSurvey !== 'all') {
+        allResponses = allResponses.filter(response => response.surveyId === selectedSurvey)
+      }
+
+      // 클라이언트 사이드에서 날짜순 정렬 (최신순)
+      allResponses.sort((a, b) => {
+        const aDate = a.analyzedAt?.toDate?.() || new Date(0)
+        const bDate = b.analyzedAt?.toDate?.() || new Date(0)
+        return bDate.getTime() - aDate.getTime()
+      })
+
+      console.log(`Found ${allResponses.length} analyzed responses:`, allResponses)
 
       // 통계 계산
-      const calculatedData = calculateClassData(responses)
+      const calculatedData = calculateClassData(allResponses)
       console.log('Calculated class data:', calculatedData)
       setClassData(calculatedData)
+      
     } catch (error) {
       console.error('응답 데이터 로드 실패:', error)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 학생 정보 추출 함수 (새/기존 구조 호환)
+  const getStudentInfo = (response: SurveyResponse) => ({
+    name: response.studentInfo?.name || response.studentName || '이름 없음',
+    class: response.studentInfo?.class || response.className || '반 정보 없음',
+    number: response.studentInfo?.number || response.studentNumber || 0
+  })
+
+  // 총점 계산 함수
+  const calculateOverallScore = (selScores: SurveyResponse['selScores']) => {
+    if (!selScores) return 0
+    const scores = Object.values(selScores)
+    return scores.reduce((sum, score) => sum + score, 0) / scores.length
   }
 
   const calculateClassData = (responses: SurveyResponse[]): ClassData => {
@@ -157,30 +205,60 @@ export default function ReportsPage() {
       }
     }
 
-    // 평균 점수 계산
-    const averageScores = {
-      selfAwareness: responses.reduce((sum, r) => sum + r.selScores.selfAwareness, 0) / responses.length,
-      selfManagement: responses.reduce((sum, r) => sum + r.selScores.selfManagement, 0) / responses.length,
-      socialAwareness: responses.reduce((sum, r) => sum + r.selScores.socialAwareness, 0) / responses.length,
-      relationship: responses.reduce((sum, r) => sum + r.selScores.relationship, 0) / responses.length,
-      decisionMaking: responses.reduce((sum, r) => sum + r.selScores.decisionMaking, 0) / responses.length
+    // SEL 점수가 있는 응답만 필터링
+    const validResponses = responses.filter(r => r.selScores)
+
+    if (validResponses.length === 0) {
+      return {
+        totalStudents: responses.length,
+        respondedStudents: 0,
+        averageScores: {
+          selfAwareness: 0,
+          selfManagement: 0,
+          socialAwareness: 0,
+          relationship: 0,
+          decisionMaking: 0
+        },
+        improvementAreas: [],
+        topPerformers: [],
+        needsAttention: []
+      }
     }
 
+    // 평균 점수 계산
+    const averageScores = {
+      selfAwareness: validResponses.reduce((sum, r) => sum + r.selScores!.selfAwareness, 0) / validResponses.length,
+      selfManagement: validResponses.reduce((sum, r) => sum + r.selScores!.selfManagement, 0) / validResponses.length,
+      socialAwareness: validResponses.reduce((sum, r) => sum + r.selScores!.socialAwareness, 0) / validResponses.length,
+      relationship: validResponses.reduce((sum, r) => sum + r.selScores!.relationship, 0) / validResponses.length,
+      decisionMaking: validResponses.reduce((sum, r) => sum + r.selScores!.decisionMaking, 0) / validResponses.length
+    }
+
+    // 각 응답에 대한 총점 계산
+    const responsesWithScores = validResponses.map(r => ({
+      ...r,
+      calculatedOverallScore: r.totalScore || r.overallScore || calculateOverallScore(r.selScores)
+    }))
+
     // 상위 성취자 (상위 20%)
-    const topPerformers = responses
-      .sort((a, b) => b.overallScore - a.overallScore)
-      .slice(0, Math.max(1, Math.ceil(responses.length * 0.2)))
-      .map(r => ({
-        name: r.studentName,
-        avgScore: r.overallScore
-      }))
+    const topPerformers = responsesWithScores
+      .sort((a, b) => b.calculatedOverallScore - a.calculatedOverallScore)
+      .slice(0, Math.max(1, Math.ceil(responsesWithScores.length * 0.2)))
+      .map(r => {
+        const studentInfo = getStudentInfo(r)
+        return {
+          name: studentInfo.name,
+          avgScore: r.calculatedOverallScore
+        }
+      })
 
     // 관심 필요 학생 (하위 20%)
-    const needsAttention = responses
-      .sort((a, b) => a.overallScore - b.overallScore)
-      .slice(0, Math.max(1, Math.ceil(responses.length * 0.2)))
+    const needsAttention = responsesWithScores
+      .sort((a, b) => a.calculatedOverallScore - b.calculatedOverallScore)
+      .slice(0, Math.max(1, Math.ceil(responsesWithScores.length * 0.2)))
       .map(r => {
-        const lowestArea = Object.entries(r.selScores)
+        const studentInfo = getStudentInfo(r)
+        const lowestArea = Object.entries(r.selScores!)
           .sort(([,a], [,b]) => a - b)[0]
         const areaNames: Record<string, string> = {
           selfAwareness: '자기인식',
@@ -190,9 +268,9 @@ export default function ReportsPage() {
           decisionMaking: '의사결정'
         }
         return {
-          name: r.studentName,
-          avgScore: r.overallScore,
-          reason: `${areaNames[lowestArea[0]]} 낮음`
+          name: studentInfo.name,
+          avgScore: r.calculatedOverallScore,
+          reason: `${areaNames[lowestArea[0]]} 영역 지원 필요 (${lowestArea[1].toFixed(1)}점)`
         }
       })
 
@@ -206,8 +284,8 @@ export default function ReportsPage() {
     ].sort((a, b) => a.score - b.score).slice(0, 3)
 
     return {
-      totalStudents: responses.length, // 실제로는 전체 학생 수를 별도로 관리해야 함
-      respondedStudents: responses.length,
+      totalStudents: responses.length,
+      respondedStudents: validResponses.length,
       averageScores,
       improvementAreas,
       topPerformers,
