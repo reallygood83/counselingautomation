@@ -33,10 +33,13 @@ export async function POST(
 
     const responseData = responseDoc.data()
     
-    // 실제 데이터 구조 로깅
-    console.log('=== 실제 응답 데이터 구조 확인 ===')
-    console.log('전체 데이터 키들:', Object.keys(responseData))
-    console.log('responseData:', JSON.stringify(responseData, null, 2))
+    // 실제 데이터 구조 로깅 (에러 추적 강화)
+    console.log('=== 🚨 긴급 디버깅: 실제 응답 데이터 구조 확인 ===')
+    console.log('🔍 responseId:', responseId)
+    console.log('📊 전체 데이터 키들:', Object.keys(responseData))
+    console.log('📋 responseData 전체:', JSON.stringify(responseData, null, 2))
+    console.log('🎯 teacherEmail 확인:', responseData.teacherEmail)
+    console.log('👤 session.user.email:', session.user.email)
     
     // 교사 권한 확인
     if (responseData.teacherEmail !== session.user.email) {
@@ -250,12 +253,31 @@ export async function POST(
       throw new Error(`Gemini 분석 실패: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}`)
     }
     
-    console.log('Gemini 분석 결과:', {
-      scores: analysis.scores,
-      scoresDetail: JSON.stringify(analysis.scores),
+    console.log('=== 🚨 Gemini 분석 결과 상세 확인 ===')
+    console.log('📊 analysis 객체 전체:', JSON.stringify(analysis, null, 2))
+    console.log('🎯 analysis.scores 상세:', {
+      selfAwareness: analysis.scores.selfAwareness,
+      selfManagement: analysis.scores.selfManagement,
+      socialAwareness: analysis.scores.socialAwareness,
+      relationship: analysis.scores.relationship,
+      decisionMaking: analysis.scores.decisionMaking,
+      scoresType: typeof analysis.scores,
+      scoresKeys: Object.keys(analysis.scores),
+      hasScores: !!analysis.scores,
       hasInsights: !!analysis.insights,
       hasRecommendations: !!analysis.recommendations,
       crisisLevel: analysis.crisisLevel
+    })
+    
+    // 🔍 각 점수가 실제로 계산된 값인지 2.5 기본값인지 확인
+    const scoreValues = Object.values(analysis.scores)
+    const isAllDefault = scoreValues.every(score => score === 2.5)
+    const uniqueValues = Array.from(new Set(scoreValues))
+    console.log('🚨 의심스러운 기본값 확인:', {
+      scoreValues,
+      isAllDefault: isAllDefault,
+      distinctValues: uniqueValues.length,
+      uniqueValues: uniqueValues
     })
     
     // 점수 검증 및 기본값 설정

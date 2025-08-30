@@ -273,6 +273,10 @@ SEL 5대 영역:
 
   // SEL 점수 계산
   private calculateSelScores(responses: Record<string, number>, questions: SelQuestion[]) {
+    console.log('=== 🚨 SEL 점수 계산 디버깅 시작 ===')
+    console.log('📊 responses 객체:', JSON.stringify(responses, null, 2))
+    console.log('📋 questions 배열:', questions.map((q, i) => ({ index: i, category: q.category, question: q.question.substring(0, 30) + '...' })))
+    
     const categoryScores = {
       selfAwareness: [] as number[],
       selfManagement: [] as number[],
@@ -282,19 +286,38 @@ SEL 5대 영역:
     }
 
     questions.forEach((question, index) => {
-      const response = responses[`q${index}`]
+      const responseKey = `q${index}`
+      const response = responses[responseKey]
+      console.log(`🔍 질문 ${index} (${question.category}): ${responseKey} = ${response}`)
+      
       if (response !== undefined) {
         categoryScores[question.category].push(response)
+        console.log(`✅ ${question.category}에 ${response} 추가됨`)
+      } else {
+        console.log(`❌ ${responseKey} 응답 없음 (undefined)`)
       }
     })
 
-    return {
+    console.log('📊 카테고리별 점수 배열:', {
+      selfAwareness: categoryScores.selfAwareness,
+      selfManagement: categoryScores.selfManagement, 
+      socialAwareness: categoryScores.socialAwareness,
+      relationship: categoryScores.relationship,
+      decisionMaking: categoryScores.decisionMaking
+    })
+
+    const finalScores = {
       selfAwareness: this.average(categoryScores.selfAwareness),
       selfManagement: this.average(categoryScores.selfManagement),
       socialAwareness: this.average(categoryScores.socialAwareness),
       relationship: this.average(categoryScores.relationship),
       decisionMaking: this.average(categoryScores.decisionMaking)
     }
+
+    console.log('🎯 최종 계산된 점수:', finalScores)
+    console.log('=== SEL 점수 계산 완료 ===')
+
+    return finalScores
   }
 
   // 위기 수준 판단
