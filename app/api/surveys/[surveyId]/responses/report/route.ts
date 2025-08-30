@@ -4,6 +4,22 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
+// HTML XSS 보안을 위한 이스케이핑 함수
+function escapeHtml(text: string | number): string {
+  if (typeof text === 'number') {
+    return text.toString()
+  }
+  if (typeof text !== 'string') {
+    return ''
+  }
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { surveyId: string } }
@@ -46,17 +62,17 @@ export async function POST(
     console.log('리포트 생성 - SEL 점수:', responseData.selScores)
     console.log('리포트 생성 - 분석 상태:', responseData.analysisStatus)
 
-    // 학생 정보 추출
-    const studentName = responseData.studentInfo?.name || responseData.studentName || '알 수 없음'
-    const className = responseData.studentInfo?.class || responseData.className || ''
+    // 학생 정보 추출 (XSS 방지를 위한 이스케이핑 적용)
+    const studentName = escapeHtml(responseData.studentInfo?.name || responseData.studentName || '알 수 없음')
+    const className = escapeHtml(responseData.studentInfo?.class || responseData.className || '')
     const studentNumber = responseData.studentInfo?.number || responseData.studentNumber || 0
 
     // SEL 점수 및 분석 데이터 (null 안전성 확보)
     const selScores = responseData.selScores as Record<string, number>
     const validScores = Object.values(selScores || {}).filter(score => score != null && !isNaN(score))
     const totalScore = responseData.totalScore || (validScores.length > 0 ? validScores.reduce((sum, score) => sum + score, 0) / validScores.length : 0)
-    const insights = responseData.aiInsights || []
-    const recommendations = responseData.recommendations || []
+    const insights = (responseData.aiInsights || []).map((insight: string) => escapeHtml(insight))
+    const recommendations = (responseData.recommendations || []).map((rec: string) => escapeHtml(rec))
     const crisisLevel = responseData.crisisLevel || 'normal'
     const analyzedAt = responseData.analyzedAt?.toDate?.() || new Date()
 

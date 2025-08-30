@@ -70,8 +70,19 @@ export async function POST(
       const responses: Record<string, number> = {}
       const selQuestions: any[] = []
       
-      // SEL 카테고리 매핑 (기본값)
-      const selCategories = ['selfAwareness', 'selfManagement', 'socialAwareness', 'relationship', 'decisionMaking']
+      // SEL 카테고리 안전한 매핑 (순환 방식 개선)
+      const getSafeSelCategory = (index: number, totalQuestions: number): string => {
+        const selCategories = ['selfAwareness', 'selfManagement', 'socialAwareness', 'relationship', 'decisionMaking']
+        
+        // 질문 개수가 5의 배수인 경우 균등 분배
+        if (totalQuestions % 5 === 0) {
+          const questionsPerCategory = totalQuestions / 5
+          return selCategories[Math.floor(index / questionsPerCategory)]
+        }
+        
+        // 그 외의 경우 순환 매핑 (기존 방식 유지하되 안전성 강화)
+        return selCategories[index % 5]
+      }
       
       responseData.responseData.questions.forEach((q: any, index: number) => {
         const questionKey = `q${index}`
@@ -84,28 +95,54 @@ export async function POST(
           rawAnswer = rawAnswer[0]
         }
         
-        // 문자열에서 숫자 추출 (예: "4점" -> 4, "매우 그렇다" -> 5)
-        let answerValue = 0
-        if (typeof rawAnswer === 'string') {
-          // 숫자가 포함된 문자열에서 숫자 추출
-          const numMatch = rawAnswer.match(/\d+/)
-          if (numMatch) {
-            answerValue = parseInt(numMatch[0])
-          } else {
-            // 텍스트 응답을 숫자로 매핑
-            const textToNumber: { [key: string]: number } = {
-              '전혀 그렇지 않다': 1,
-              '그렇지 않다': 2, 
-              '보통이다': 3,
-              '그렇다': 4,
-              '매우 그렇다': 5,
-              '1점': 1, '2점': 2, '3점': 3, '4점': 4, '5점': 5
-            }
-            answerValue = textToNumber[rawAnswer] || parseInt(rawAnswer) || 0
+        // 안전한 숫자 변환 함수
+        const safeParseAnswer = (answer: any): number => {
+          // null, undefined 처리
+          if (answer == null) return 0
+          
+          // 이미 숫자인 경우
+          if (typeof answer === 'number') {
+            return Math.max(1, Math.min(5, Math.round(answer))) // 1-5 범위로 제한
           }
-        } else {
-          answerValue = parseInt(String(rawAnswer)) || 0
+          
+          // 문자열 처리
+          if (typeof answer === 'string') {
+            const trimmedAnswer = answer.trim()
+            
+            // 텍스트 응답을 숫자로 매핑 (우선순위: 텍스트 매핑)
+            const textToNumber: Record<string, number> = {
+              '전혀 그렇지 않다': 1, '그렇지 않다': 2, '보통이다': 3,
+              '그렇다': 4, '매우 그렇다': 5,
+              '1점': 1, '2점': 2, '3점': 3, '4점': 4, '5점': 5,
+              '1': 1, '2': 2, '3': 3, '4': 4, '5': 5
+            }
+            
+            if (textToNumber[trimmedAnswer]) {
+              return textToNumber[trimmedAnswer]
+            }
+            
+            // 숫자가 포함된 문자열에서 숫자 추출 (안전한 처리)
+            const numMatch = trimmedAnswer.match(/\d+/)
+            if (numMatch && numMatch[0]) {
+              const parsed = parseInt(numMatch[0], 10)
+              if (!isNaN(parsed)) {
+                return Math.max(1, Math.min(5, parsed)) // 1-5 범위로 제한
+              }
+            }
+            
+            // 직접 숫자 변환 시도
+            const directParsed = parseInt(trimmedAnswer, 10)
+            if (!isNaN(directParsed)) {
+              return Math.max(1, Math.min(5, directParsed))
+            }
+          }
+          
+          // 기본값 반환 (중간값)
+          console.warn('응답 파싱 실패, 기본값 사용:', answer)
+          return 3 // SEL 중간값
         }
+        
+        const answerValue = safeParseAnswer(rawAnswer)
         
         console.log(`질문 ${index}:`, {
           questionTitle: q.questionTitle,
@@ -116,9 +153,9 @@ export async function POST(
         
         responses[questionKey] = answerValue
         
-        // SEL 질문 구조 생성
+        // SEL 질문 구조 생성 (안전한 카테고리 매핑 사용)
         selQuestions.push({
-          category: selCategories[index % 5], // 5개 카테고리 순환
+          category: getSafeSelCategory(index, responseData.responseData.questions.length),
           question: q.questionTitle || `질문 ${index + 1}`,
           options: ['전혀 그렇지 않다', '그렇지 않다', '보통이다', '그렇다', '매우 그렇다'],
           weight: 1
@@ -137,16 +174,42 @@ export async function POST(
       
       const responses: Record<string, number> = {}
       const selQuestions: any[] = []
-      const selCategories = ['selfAwareness', 'selfManagement', 'socialAwareness', 'relationship', 'decisionMaking']
+      const rawResponsesEntries = Object.entries(rawResponses)
       
-      Object.entries(rawResponses).forEach(([key, value], index) => {
+      // 안전한 카테고리 매핑 함수 재사용
+      const getSafeSelCategoryLegacy = (index: number, totalQuestions: number): string => {
+        const selCategories = ['selfAwareness', 'selfManagement', 'socialAwareness', 'relationship', 'decisionMaking']
+        
+        if (totalQuestions % 5 === 0) {
+          const questionsPerCategory = totalQuestions / 5
+          return selCategories[Math.floor(index / questionsPerCategory)]
+        }
+        
+        return selCategories[index % 5]
+      }
+      
+      rawResponsesEntries.forEach(([key, value], index) => {
         const questionKey = `q${index}`
-        const parsedValue = parseInt(String(value) || '0')
+        
+        // 안전한 숫자 파싱 (기존 구조용)
+        const safeParseValue = (val: any): number => {
+          if (val == null) return 3 // 기본값
+          
+          const numVal = parseInt(String(val), 10)
+          if (isNaN(numVal)) {
+            console.warn('기존 구조에서 숫자 파싱 실패, 기본값 사용:', val)
+            return 3
+          }
+          
+          return Math.max(1, Math.min(5, numVal)) // 1-5 범위 제한
+        }
+        
+        const parsedValue = safeParseValue(value)
         console.log(`기존 구조 질문 ${index} (${key}): ${value} -> ${parsedValue}`)
         responses[questionKey] = parsedValue
         
         selQuestions.push({
-          category: selCategories[index % 5],
+          category: getSafeSelCategoryLegacy(index, rawResponsesEntries.length),
           question: `질문 ${index + 1}`,
           options: ['전혀 그렇지 않다', '그렇지 않다', '보통이다', '그렇다', '매우 그렇다'],
           weight: 1
